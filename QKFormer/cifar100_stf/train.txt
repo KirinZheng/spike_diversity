@@ -1,0 +1,44 @@
+# 这里的STF-1 / 2 是按照STF论文中的
+
+## cifar 100, stf_1 no 3dpe conv1d, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/train.py \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/outputs/T_4 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/cifar100_l20.yml \
+-T 4 \
+--recurrent_coding \
+--pe_type stf_1 \
+--temporal_conv_type conv1d \
+--experiment stf_1_conv1d
+
+
+## cifar 100, stf_1 no 3dpe conv2d, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/train.py \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/outputs/T_4 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/cifar100_l20.yml \
+-T 4 \
+--recurrent_coding \
+--pe_type stf_1 \
+--temporal_conv_type conv2d \
+--experiment stf_1_conv2d
+
+
+## cifar 100, stf_2 no 3dpe conv1d, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/train.py \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/outputs/T_4 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/cifar100_l20.yml \
+-T 4 \
+--recurrent_coding \
+--pe_type stf_2 \
+--temporal_conv_type conv1d \
+--experiment stf_2_conv1d
+
+
+## cifar 100, stf_2 no 3dpe conv2d, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/train.py \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/outputs/T_4 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/cifar100_l20.yml \
+-T 4 \
+--recurrent_coding \
+--pe_type stf_2 \
+--temporal_conv_type conv2d \
+--experiment stf_2_conv2d

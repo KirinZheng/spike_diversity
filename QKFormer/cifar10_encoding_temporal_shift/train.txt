@@ -1,0 +1,38 @@
+## cifar10 encoding first temporal construction, factor 0.5, feature_group = 3, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_3/train.py \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_3/outputs/T_4 \
+-T 4 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_3/cifar10.yml \
+--feature_dimension_group_number 3 \
+--temporal_construction_factor 0.5 \
+--experiment encoding_first_factor_0.5_feat_group_3
+
+
+## cifar10 encoding first temporal construction, factor 1.0, feature_group = 3, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_3/train.py \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_3/outputs/T_4 \
+-T 4 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_3/cifar10.yml \
+--feature_dimension_group_number 3 \
+--temporal_construction_factor 1.0 \
+--experiment encoding_first_factor_1.0_feat_group_3
+
+
+## cifar10 encoding first temporal construction, factor 0.3, feature_group = 3, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_3/train.py \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_3/outputs/T_4 \
+-T 4 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_3/cifar10.yml \
+--feature_dimension_group_number 3 \
+--temporal_construction_factor 0.3 \
+--experiment encoding_first_factor_0.3_feat_group_3
+
+
+## cifar10 encoding first temporal construction, factor 0.8, feature_group = 3, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_3/train.py \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_3/outputs/T_4 \
+-T 4 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_3/cifar10.yml \
+--feature_dimension_group_number 3 \
+--temporal_construction_factor 0.8 \
+--experiment encoding_first_factor_0.8_feat_group_3

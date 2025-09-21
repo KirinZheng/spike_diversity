@@ -1,0 +1,47 @@
+## cifar10 encoding all conv2d / conv1d before + temporal construction, factor 0.3, feature_group = 3 (maxpooling_lif_changed), l20
+python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10/train.py \
+-T 4 \
+--seed 42 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10/cifar10.yml \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10/outputs/cifar10/T_4/ \
+--feature_dimension_group_number 3 \
+--temporal_construction_factor 0.3 \
+--maxpooling_lif_change_order \
+--experiment all_before_conv_factor_0.3_feat_group_3
+
+
+## cifar10 encoding all conv2d / conv1d before + temporal construction, factor 0.5, feature_group = 3 (maxpooling_lif_changed), l20
+python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10/train.py \
+-T 4 \
+--seed 42 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10/cifar10.yml \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10/outputs/cifar10/T_4/ \
+--feature_dimension_group_number 3 \
+--temporal_construction_factor 0.5 \
+--maxpooling_lif_change_order \
+--experiment all_before_conv_factor_0.5_feat_group_3
+
+
+
+## cifar100 encoding all conv2d / conv1d before + temporal construction, factor 0.3, feature_group = 3 (maxpooling_lif_changed), l20
+python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10/train.py \
+-T 4 \
+--seed 42 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10/cifar100.yml \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10/outputs/cifar100/T_4/ \
+--feature_dimension_group_number 3 \
+--temporal_construction_factor 0.3 \
+--maxpooling_lif_change_order \
+--experiment all_before_conv_factor_0.3_feat_group_3
+
+
+## cifar100 encoding all conv2d / conv1d before + temporal construction, factor 0.3, feature_group = 3 (maxpooling_lif_changed), l20
+python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10/train.py \
+-T 4 \
+--seed 42 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10/cifar100.yml \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10/outputs/cifar100/T_4/ \
+--feature_dimension_group_number 3 \
+--temporal_construction_factor 0.5 \
+--maxpooling_lif_change_order \
+--experiment all_before_conv_factor_0.5_feat_group_3

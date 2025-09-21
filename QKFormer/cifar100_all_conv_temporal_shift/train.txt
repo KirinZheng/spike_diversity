@@ -1,0 +1,18 @@
+## cifar 100 all conv2d / conv1d before temporal construction, factor 0.3, feature_group = 3, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_4/train.py \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_4/outputs/T_4 \
+-T 4 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_4/cifar100.yml \
+--feature_dimension_group_number 3 \
+--temporal_construction_factor 0.3 \
+--experiment all_before_conv_factor_0.3_feat_group_3
+
+
+## cifar 100 all conv2d / conv1d before temporal construction, factor 0.5, feature_group = 3, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_4/train.py \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_4/outputs/T_4 \
+-T 4 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_4/cifar100.yml \
+--feature_dimension_group_number 3 \
+--temporal_construction_factor 0.5 \
+--experiment all_before_conv_factor_0.5_feat_group_3

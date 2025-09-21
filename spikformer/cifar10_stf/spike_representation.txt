@@ -1,0 +1,321 @@
+## spikformer cifar10 baseline T=2 spike representation
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 2 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/baseline_cifar10_T_2/model_best.pth.tar \
+--experiment tmp \
+--spike_hook_layer_name patch_embed.proj_lif \
+--spike_re_eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar10.yml
+
+
+
+## spikformer cifar10 baseline T=4 spike representation
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 4 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/baseline_cifar10_T_4/model_best.pth.tar \
+--experiment tmp \
+--spike_hook_layer_name patch_embed.proj_lif \
+--spike_re_eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar10.yml
+
+
+## spikformer cifar10 baseline T=6 spike representation
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 6 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/baseline_cifar10_T_6/model_best.pth.tar \
+--experiment tmp \
+--spike_hook_layer_name patch_embed.proj_lif \
+--spike_re_eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar10.yml
+
+
+## spikformer cifar10 baseline T=8 spike representation
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 8 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/baseline_cifar10_T_8/model_best.pth.tar \
+--experiment tmp \
+--spike_hook_layer_name patch_embed.proj_lif \
+--spike_re_eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar10.yml
+
+
+## spikformer cifar100 baseline T=2 spike representation
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 2 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/baseline_cifar100_T_2/model_best.pth.tar \
+--experiment tmp \
+--spike_hook_layer_name patch_embed.proj_lif \
+--spike_re_eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar100.yml
+
+
+## spikformer cifar100 baseline T=4 spike representation
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 4 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/baseline_cifar100_T_4/model_best.pth.tar \
+--experiment tmp \
+--spike_hook_layer_name patch_embed.proj_lif \
+--spike_re_eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar100.yml
+
+
+## spikformer cifar100 baseline T=6 spike representation
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 6 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/baseline_cifar100_T_6/model_best.pth.tar \
+--experiment tmp \
+--spike_hook_layer_name patch_embed.proj_lif \
+--spike_re_eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar100.yml
+
+
+## spikformer cifar100 baseline T=8 spike representation
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 8 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/baseline_cifar100_T_8/model_best.pth.tar \
+--experiment tmp \
+--spike_hook_layer_name patch_embed.proj_lif \
+--spike_re_eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar100.yml
+
+
+
+
+
+## spikformer cifar10 baseline T=2 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 2 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/baseline_cifar10_T_2/model_best.pth.tar \
+--experiment tmp \
+--eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar10.yml
+
+
+## spikformer cifar10 baseline T=4 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 4 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/baseline_cifar10_T_4/model_best.pth.tar \
+--experiment tmp \
+--eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar10.yml
+
+
+## spikformer cifar10 baseline T=4 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 4 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/baseline_cifar10_T_4/model_best.pth.tar \
+--experiment tmp \
+--eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar10.yml
+
+
+
+## spikformer cifar10 baseline T=6 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 6 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/baseline_cifar10_T_6/model_best.pth.tar \
+--experiment tmp \
+--eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar10.yml
+
+
+
+## spikformer cifar10 baseline T=8 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 8 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/baseline_cifar10_T_8/model_best.pth.tar \
+--experiment tmp \
+--eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar10.yml
+
+
+## spikformer cifar100 baseline T=2 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 2 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/baseline_cifar100_T_2/model_best.pth.tar \
+--experiment tmp \
+--eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar100.yml
+
+
+## spikformer cifar100 baseline T=4 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 4 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/baseline_cifar100_T_4/model_best.pth.tar \
+--experiment tmp \
+--eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar100.yml
+
+
+## spikformer cifar100 baseline T=6 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 6 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/baseline_cifar100_T_6/model_best.pth.tar \
+--experiment tmp \
+--eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar100.yml
+
+
+## spikformer cifar100 baseline T=8 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 8 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/baseline_cifar100_T_8/model_best.pth.tar \
+--experiment tmp \
+--eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar100.yml
+
+
+## spikformer cifar10 ours T=2 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 2 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/temporal_rnn_3d_pe_arch_4_cifar10_T_2/model_best.pth.tar \
+--experiment tmp \
+--recurrent_coding \
+--pe_type 3d_pe_arch_4 \
+--eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar10.yml
+
+
+## spikformer cifar10 ours T=4 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 4 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/temporal_rnn_3d_pe_arch_4_cifar10_T_4/model_best.pth.tar \
+--experiment tmp \
+--recurrent_coding \
+--pe_type 3d_pe_arch_4 \
+--eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar10.yml
+
+
+
+## spikformer cifar10 ours T=6 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 6 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/temporal_rnn_3d_pe_arch_4_cifar10_T_6/model_best.pth.tar \
+--experiment tmp \
+--recurrent_coding \
+--pe_type 3d_pe_arch_4 \
+--eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar10.yml
+
+
+## spikformer cifar10 ours T=8 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 8 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/temporal_rnn_3d_pe_arch_4_cifar10_T_8/model_best.pth.tar \
+--experiment tmp \
+--recurrent_coding \
+--pe_type 3d_pe_arch_4 \
+--eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar10.yml
+
+
+## spikformer cifar100 ours T=2 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 2 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/temporal_rnn_3d_pe_arch_4_cifar100_T_2/model_best.pth.tar \
+--experiment tmp \
+--recurrent_coding \
+--pe_type 3d_pe_arch_4 \
+--eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar100.yml
+
+
+
+## spikformer cifar100 ours T=4 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 4 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/temporal_rnn_3d_pe_arch_4_cifar100_T_4/model_best.pth.tar \
+--experiment tmp \
+--recurrent_coding \
+--pe_type 3d_pe_arch_4 \
+--eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar100.yml
+
+
+## spikformer cifar100 ours T=6 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 6 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/temporal_rnn_3d_pe_arch_4_cifar100_T_6/model_best.pth.tar \
+--experiment tmp \
+--recurrent_coding \
+--pe_type 3d_pe_arch_4 \
+--eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar100.yml
+
+
+
+## spikformer cifar100 ours T=8 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikformer/cifar_official/train.py \
+--time-step 8 \
+--seed 42 \
+--output /zhengzeqi/top_down/spikformer/cifar_official/outputs \
+--resume /zhengzeqi/top_down/spikformer/cifar_official/outputs/temporal_rnn_3d_pe_arch_4_cifar100_T_8/model_best.pth.tar \
+--experiment tmp \
+--recurrent_coding \
+--pe_type 3d_pe_arch_4 \
+--eval \
+--config /zhengzeqi/top_down/spikformer/cifar_official/cifar100.yml
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
