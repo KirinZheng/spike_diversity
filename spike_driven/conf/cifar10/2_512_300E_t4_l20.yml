@@ -1,5 +1,5 @@
 # Dataset / Model parameters
-data_dir: /zhengzeqi/vit_test/ViT_test_experiment/data/
+data_dir: /tangjunfeng/zhengzeqi/data/
 dataset: torch/cifar10
 pretrained: False
 num_classes: 10

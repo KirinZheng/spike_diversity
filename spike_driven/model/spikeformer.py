@@ -44,8 +44,10 @@ class SpikeDrivenTransformer(nn.Module):
         recurrent_coding=False,         # changed on 2025-04-13
         recurrent_lif=None,             # changed on 2025-04-13
         pe_type=None,                   # changed on 2025-04-17
-        diversity_loss=False,           # changed on 2025-04-23
-        lif_recurrent_state=None,       # changed on 2025-04-27
+        # diversity_loss=False,           # changed on 2025-04-23
+        # lif_recurrent_state=None,       # changed on 2025-04-27
+        temporal_conv_type=None,        # changed on 2025-09-22
+        maxpooling_lif_change_order=False,
     ):
         super().__init__()
         self.num_classes = num_classes
@@ -55,43 +57,70 @@ class SpikeDrivenTransformer(nn.Module):
         self.TET = TET
         self.dvs = dvs_mode
 
+        assert pe_type in ("stf_1", "stf_2"), f"Invalid pe_type: {pe_type}, must be 'stf_1' or 'stf_2'"
+        assert temporal_conv_type in ("conv1d", "conv2d"), f"Invalid temporal_conv_type: {temporal_conv_type}, must be 'conv1d' or 'conv2d'"
+
         dpr = [
             x.item() for x in torch.linspace(0, drop_path_rate, depths)
         ]  # stochastic depth decay rule
         self.recurrent_coding = recurrent_coding    # changed on 2025-04-13
+        self.recurrent_lif = recurrent_lif
+        self.temporal_conv_type=temporal_conv_type
         self.pe_type=pe_type                        # changed on 2025-04-17
-        self.diversity_loss = diversity_loss        # changed on 2025-04-23
-        self.lif_recurrent_state = lif_recurrent_state  # changed on 2025-04-27
+        self.maxpooling_lif_change_order = maxpooling_lif_change_order
+
+        # self.diversity_loss = diversity_loss        # changed on 2025-04-23
+        # self.lif_recurrent_state = lif_recurrent_state  # changed on 2025-04-27
         
         
-        if self.lif_recurrent_state is not None:
-            lif_recurrent_state_length = 4 + depths * 7
-            assert len(self.lif_recurrent_state) == lif_recurrent_state_length, f"Sorry the length of lif_recurrent_state must be \
-                {lif_recurrent_state_length}, while the current length is {len(self.lif_recurrent_state)}!"
+        # if self.lif_recurrent_state is not None:
+        #     lif_recurrent_state_length = 4 + depths * 7
+        #     assert len(self.lif_recurrent_state) == lif_recurrent_state_length, f"Sorry the length of lif_recurrent_state must be \
+        #         {lif_recurrent_state_length}, while the current length is {len(self.lif_recurrent_state)}!"
 
-            lif_recurrent_state_index = 0
+        #     lif_recurrent_state_index = 0
+        if not maxpooling_lif_change_order:
+            patch_embed = MS_SPS(
+                img_size_h=img_size_h,
+                img_size_w=img_size_w,
+                patch_size=patch_size,
+                in_channels=in_channels,
+                embed_dims=embed_dims,
+                pooling_stat=pooling_stat,
+                spike_mode=spike_mode,
+                recurrent_coding=recurrent_coding,
+                recurrent_lif=recurrent_lif,
+                pe_type=pe_type,
+                time_step=T,
+                temporal_conv_type=temporal_conv_type
+                # use_diversity_loss=diversity_loss,
+                # lif_recurrent_state = lif_recurrent_state[0:3]
+            )
+        elif maxpooling_lif_change_order:
+            patch_embed = MS_SPS_Maxpooling_LIF_changed(
+                img_size_h=img_size_h,
+                img_size_w=img_size_w,
+                patch_size=patch_size,
+                in_channels=in_channels,
+                embed_dims=embed_dims,
+                pooling_stat=pooling_stat,
+                spike_mode=spike_mode,
+                recurrent_coding=recurrent_coding,
+                recurrent_lif=recurrent_lif,
+                pe_type=pe_type,
+                time_step=T,
+                temporal_conv_type=temporal_conv_type
+                # use_diversity_loss=diversity_loss,
+                # lif_recurrent_state = lif_recurrent_state[0:3]
+            )
+        else:
+            assert False, "Sorry, that's wrong!"
 
-        patch_embed = MS_SPS(
-            img_size_h=img_size_h,
-            img_size_w=img_size_w,
-            patch_size=patch_size,
-            in_channels=in_channels,
-            embed_dims=embed_dims,
-            pooling_stat=pooling_stat,
-            spike_mode=spike_mode,
-            recurrent_coding=recurrent_coding,
-            recurrent_lif=recurrent_lif,
-            pe_type=pe_type,
-            time_step=T,
-            use_diversity_loss=diversity_loss,
-            lif_recurrent_state = lif_recurrent_state[0:3]
-        )
+        # if self.lif_recurrent_state is not None:
+        #     print(f"MS_SPS: LIF index: {', '.join(map(str, range(0, 3)))}")
+        #     print(f"MS_SPS: LIF using recurrent is: {lif_recurrent_state[0:3]}")
 
-        if self.lif_recurrent_state is not None:
-            print(f"MS_SPS: LIF index: {', '.join(map(str, range(0, 3)))}")
-            print(f"MS_SPS: LIF using recurrent is: {lif_recurrent_state[0:3]}")
-
-            lif_recurrent_state_index = lif_recurrent_state_index + 3
+        #     lif_recurrent_state_index = lif_recurrent_state_index + 3
 
 
         blocks = nn.ModuleList(
@@ -111,25 +140,25 @@ class SpikeDrivenTransformer(nn.Module):
                     spike_mode=spike_mode,
                     dvs=dvs_mode,
                     layer=j,
-                    lif_recurrent_state=lif_recurrent_state[(lif_recurrent_state_index+(j)*7):(lif_recurrent_state_index+(j+1)*7)]
+                    # lif_recurrent_state=lif_recurrent_state[(lif_recurrent_state_index+(j)*7):(lif_recurrent_state_index+(j+1)*7)]
                 )
                 for j in range(depths)
             ]
         )
 
-        if self.lif_recurrent_state is not None:
-            for i in range(depths):
-                print(f"MS_Block_Conv Block{i}: LIF index: {', '.join(map(str, range(lif_recurrent_state_index+(i)*7, lif_recurrent_state_index+(i+1)*7)))}")
-                print(f"MS_Block_Conv Block{i}: LIF using recurrent is: {lif_recurrent_state[(lif_recurrent_state_index+(i)*7):(lif_recurrent_state_index+(i+1)*7)]}")
+        # if self.lif_recurrent_state is not None:
+        #     for i in range(depths):
+        #         print(f"MS_Block_Conv Block{i}: LIF index: {', '.join(map(str, range(lif_recurrent_state_index+(i)*7, lif_recurrent_state_index+(i+1)*7)))}")
+        #         print(f"MS_Block_Conv Block{i}: LIF using recurrent is: {lif_recurrent_state[(lif_recurrent_state_index+(i)*7):(lif_recurrent_state_index+(i+1)*7)]}")
 
 
-            lif_recurrent_state_index = lif_recurrent_state_index + (depths) * 7
+        #     lif_recurrent_state_index = lif_recurrent_state_index + (depths) * 7
 
-            self.head_lif_recurrent_state_index = lif_recurrent_state_index
+        #     self.head_lif_recurrent_state_index = lif_recurrent_state_index
 
-        if self.lif_recurrent_state is not None:
-            print(f"Head LIF: LIF index: {self.head_lif_recurrent_state_index}")
-            print(f"Head LIF: LIF using recurrent is: {lif_recurrent_state[self.head_lif_recurrent_state_index]}")
+        # if self.lif_recurrent_state is not None:
+        #     print(f"Head LIF: LIF index: {self.head_lif_recurrent_state_index}")
+        #     print(f"Head LIF: LIF using recurrent is: {lif_recurrent_state[self.head_lif_recurrent_state_index]}")
 
         setattr(self, f"patch_embed", patch_embed)
         setattr(self, f"block", blocks)
@@ -159,19 +188,20 @@ class SpikeDrivenTransformer(nn.Module):
         block = getattr(self, f"block")
         patch_embed = getattr(self, f"patch_embed")
         # changed on 2025-0-24
-        if self.diversity_loss:
-            x, _, hook, diversity_coding = patch_embed(x, hook=hook)
-        else:
-            x, _, hook = patch_embed(x, hook=hook)
+        # if self.diversity_loss:
+        #     x, _, hook, diversity_coding = patch_embed(x, hook=hook)
+        # else:
+        x, _, hook = patch_embed(x, hook=hook)
+        
         for blk in block:
             x, _, hook = blk(x, hook=hook)
 
         x = x.flatten(3).mean(3)
 
-        if self.diversity_loss:
-            return x, hook, diversity_coding
-        else:
-            return x, hook
+        # if self.diversity_loss:
+        #     return x, hook, diversity_coding
+        # else:
+        return x, hook
 
     def forward(self, x, hook=None):
         if len(x.shape) < 5:
@@ -179,24 +209,24 @@ class SpikeDrivenTransformer(nn.Module):
         else:
             x = x.transpose(0, 1).contiguous()
         # changed on 2025-0-24
-        if self.diversity_loss:
-            x, hook, diversity_coding = self.forward_features(x, hook=hook)
-        else:
-            x, hook = self.forward_features(x, hook=hook)
+        # if self.diversity_loss:
+        #     x, hook, diversity_coding = self.forward_features(x, hook=hook)
+        # else:
+        x, hook = self.forward_features(x, hook=hook)
         # changed on 2025-04-27
-        if self.lif_recurrent_state is not None and self.lif_recurrent_state[self.head_lif_recurrent_state_index] == "1":
-            tmp_x = []
-            for t in range(self.T):
-                if t == 0:
-                    x_in = x[t]    # B C H W
-                else:
-                    x_in = x[t] + x_out
-                x_out = self.head_lif(x_in.unsqueeze(0)).squeeze(0)   # B C H W
-                tmp_x.append(x_out)
+        # if self.lif_recurrent_state is not None and self.lif_recurrent_state[self.head_lif_recurrent_state_index] == "1":
+        #     tmp_x = []
+        #     for t in range(self.T):
+        #         if t == 0:
+        #             x_in = x[t]    # B C H W
+        #         else:
+        #             x_in = x[t] + x_out
+        #         x_out = self.head_lif(x_in.unsqueeze(0)).squeeze(0)   # B C H W
+        #         tmp_x.append(x_out)
             
-            x = torch.stack(tmp_x, dim=0)    # T B C H W
-        else:
-            x = self.head_lif(x)
+        #     x = torch.stack(tmp_x, dim=0)    # T B C H W
+        # else:
+        x = self.head_lif(x)
         if hook is not None:
             hook["head_lif"] = x.detach()
 
@@ -204,10 +234,10 @@ class SpikeDrivenTransformer(nn.Module):
         if not self.TET:
             x = x.mean(0)
             
-        if self.diversity_loss:
-            return x, hook, diversity_coding
-        else:
-            return x, hook
+        # if self.diversity_loss:
+        #     return x, hook, diversity_coding
+        # else:
+        return x, hook
 
 
 @register_model
@@ -217,5 +247,7 @@ def sdt(**kwargs):
     )
     model.default_cfg = _cfg()
     print(f"using recurrent coding: {model.recurrent_coding}")
-    print(f"postion embedding methods: {model.pe_type}")
+    print(f"pe_type: {model.pe_type}")
+    print(f"temporal_conv_type: {model.temporal_conv_type}")
+    print(f"maxpooling_lif_change_order: {model.maxpooling_lif_change_order}")
     return model

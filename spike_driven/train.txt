@@ -1,247 +1,119 @@
-## cifar10 baseline T=1,2,4,6,8
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar10/2_512_300E_t4.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
+## cifar10, stf_1 + conv1d + no 3d pe + maxpooling_lif_changed, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/train.py \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/conf/cifar10/2_512_300E_t4_l20.yml \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/outputs/cifar10/T_4 \
 --time-steps 4 \
---experiment baseline_cifar10_T_6
-
-
-## cifar100 baseline T=1,2,4,6,8
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar100/2_512_300E_t4.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
---time-steps 6 \
---experiment baseline_cifar100_T_6
-
-## cifar10 temporal_rnn_none_lif T=2,4,6,8
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar10/2_512_300E_t4.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
 --recurrent_coding \
---time-steps 2 \
---experiment temporal_rnn_none_lif_cifar10_T_2
-
-## cifar100 temporal_rnn_none_lif T=2,4,6,8
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar100/2_512_300E_t4.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
---recurrent_coding \
---time-steps 8 \
---experiment temporal_rnn_none_lif_cifar100_T_8
-
-
-## cifar10 temporal_rnn_none_lif_3d_pe_arch_1 T=2,4,6,8
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar10/2_512_300E_t4.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
---recurrent_coding \
---time-steps 2 \
---pe_type 3d_pe_arch_1 \
---experiment temporal_rnn_none_lif_3d_pe_arch_1_cifar10_T_2
-
-
-## cifar100 temporal_rnn_none_lif_3d_pe_arch_1 T=2,4,6,8
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar100/2_512_300E_t4.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
---recurrent_coding \
---time-steps 2 \
---pe_type 3d_pe_arch_1 \
---experiment temporal_rnn_none_lif_3d_pe_arch_1_cifar100_T_2
+--pe_type stf_1 \
+--maxpooling_lif_change_order \
+--temporal_conv_type conv1d \
+--experiment stf_1_conv1d_maxpooling_lif_changed
 
 
 
-## cifar10 temporal_rnn_none_lif_3d_pe_arch_2 T=2,4,6,8
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar10/2_512_300E_t4.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
---recurrent_coding \
---time-steps 2 \
---pe_type 3d_pe_arch_2 \
---experiment temporal_rnn_none_lif_3d_pe_arch_2_cifar10_T_2
-
-
-## cifar10 temporal_rnn_none_lif_3d_pe_arch_3 T=2,4,6,8
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar10/2_512_300E_t4.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
---recurrent_coding \
---time-steps 2 \
---pe_type 3d_pe_arch_3 \
---experiment temporal_rnn_none_lif_3d_pe_arch_3_cifar10_T_2
-
-
-## cifar10 temporal_rnn_none_lif_3d_pe_arch_4 T=2,4,6,8
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar10/2_512_300E_t4.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
---recurrent_coding \
---time-steps 8 \
---pe_type 3d_pe_arch_4 \
---experiment temporal_rnn_none_lif_3d_pe_arch_4_cifar10_T_8
-
-
-## cifar100 temporal_rnn_none_lif_3d_pe_arch_4 T=2,4,6,8
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar100/2_512_300E_t4.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
---recurrent_coding \
---time-steps 8 \
---pe_type 3d_pe_arch_4 \
---experiment temporal_rnn_none_lif_3d_pe_arch_4_cifar100_T_8
-
-
-## cifar10 temporal_rnn_none_lif_3d_pe_arch_5 T=2,4,6,8
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar10/2_512_300E_t4.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
---recurrent_coding \
---time-steps 8 \
---pe_type 3d_pe_arch_5 \
---experiment temporal_rnn_none_lif_3d_pe_arch_5_cifar10_T_8
-
-
-## cifar100 temporal_rnn_none_lif_3d_pe_arch_5 T=2,4,6,8
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar100/2_512_300E_t4.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
---recurrent_coding \
---time-steps 8 \
---pe_type 3d_pe_arch_5 \
---experiment temporal_rnn_none_lif_3d_pe_arch_5_cifar100_T_8
-
-
-
-
-## cifar10 temporal_rnn_none_lif_3d_pe_arch_1 + diversity entropy loss T=2,4,6,8
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar10/2_512_300E_t4.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
---recurrent_coding \
+## cifar10, stf_1 + conv2d + no 3d pe + maxpooling_lif_changed, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/train.py \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/conf/cifar10/2_512_300E_t4_l20.yml \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/outputs/cifar10/T_4 \
 --time-steps 4 \
---pe_type 3d_pe_arch_1 \
---use_dr_entropy_loss \
---uniform_weight 0.35 \
---experiment temporal_rnn_none_lif_3d_pe_arch_1_cifar10_T_4_dr_entropy_loss_0.35
-
-
-
-
-
-
-
-## cifar10 temporal_rnn_none_lif_3d_pe_arch_1 imp_all
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar10/2_512_300E_t4.yml \
---model sdt_IMP \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
 --recurrent_coding \
+--pe_type stf_1 \
+--maxpooling_lif_change_order \
+--temporal_conv_type conv2d \
+--experiment stf_1_conv2d_maxpooling_lif_changed
+
+
+## cifar10, stf_2 + conv1d + no 3d pe + maxpooling_lif_changed, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/train.py \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/conf/cifar10/2_512_300E_t4_l20.yml \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/outputs/cifar10/T_4 \
 --time-steps 4 \
---pe_type 3d_pe_arch_1 \
---use_imp_lif \
---lif_recurrent_state 000000000000000000 \
---experiment temporal_rnn_none_lif_3d_pe_arch_1_cifar10_T_4_imp
-
-
-## cifar100 temporal_rnn_none_lif_3d_pe_arch_1 imp_all
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar100/2_512_300E_t4.yml \
---model sdt_IMP \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
 --recurrent_coding \
+--pe_type stf_2 \
+--maxpooling_lif_change_order \
+--temporal_conv_type conv1d \
+--experiment stf_2_conv1d_maxpooling_lif_changed
+
+
+
+## cifar10, stf_2 + conv2d + no 3d pe + maxpooling_lif_changed, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/train.py \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/conf/cifar10/2_512_300E_t4_l20.yml \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/outputs/cifar10/T_4 \
 --time-steps 4 \
---pe_type 3d_pe_arch_1 \
---use_imp_lif \
---lif_recurrent_state 000000000000000000 \
---experiment temporal_rnn_none_lif_3d_pe_arch_1_cifar100_T_4_imp
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## spike representation cifar10 temporal_rnn_none_lif_3d_pe_arch_1/2/3 T=2,4,6,7
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar10/2_512_300E_t4.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
---resume \
 --recurrent_coding \
---time-steps 2 \
---pe_type 3d_pe_arch_3 \
---spike_re_eval
+--pe_type stf_2 \
+--maxpooling_lif_change_order \
+--temporal_conv_type conv2d \
+--experiment stf_2_conv2d_maxpooling_lif_changed
 
 
 
-## spike representation cifar100 temporal_rnn_none_lif_3d_pe_arch_1/2/3 T=2,4,6,7
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar100/2_512_300E_t4.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
---resume /zhengzeqi/top_down/spikedriven/github_version/weights/temporal_rnn_none_lif_3d_pe_arch_3_cifar100_T_8/model_best.pth.tar \
+## cifar100, stf_1 + conv1d + no 3d pe + maxpooling_lif_changed, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/train.py \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/conf/cifar100/2_512_300E_t4_l20.yml \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/outputs/cifar100/T_4 \
+--time-steps 4 \
 --recurrent_coding \
---time-steps 8 \
---pe_type 3d_pe_arch_3 \
---spike_re_eval
-
-
-## spike representation cifar100 baseline T=2,4,6,7
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar100/2_512_300E_t4.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
---resume /zhengzeqi/top_down/spikedriven/github_version/weights/baseline_cifar100_T_8/model_best.pth.tar \
---time-steps 8 \
---spike_re_eval
+--pe_type stf_1 \
+--maxpooling_lif_change_order \
+--temporal_conv_type conv1d \
+--experiment stf_1_conv1d_maxpooling_lif_changed
 
 
 
+## cifar100, stf_1 + conv2d + no 3d pe + maxpooling_lif_changed, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/train.py \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/conf/cifar100/2_512_300E_t4_l20.yml \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/outputs/cifar100/T_4 \
+--time-steps 4 \
+--recurrent_coding \
+--pe_type stf_1 \
+--maxpooling_lif_change_order \
+--temporal_conv_type conv2d \
+--experiment stf_1_conv2d_maxpooling_lif_changed
+
+
+## cifar100, stf_2 + conv1d + no 3d pe + maxpooling_lif_changed, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/train.py \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/conf/cifar100/2_512_300E_t4_l20.yml \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/outputs/cifar100/T_4 \
+--time-steps 4 \
+--recurrent_coding \
+--pe_type stf_2 \
+--maxpooling_lif_change_order \
+--temporal_conv_type conv1d \
+--experiment stf_2_conv1d_maxpooling_lif_changed
+
+
+
+## cifar100, stf_2 + conv2d + no 3d pe + maxpooling_lif_changed, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/train.py \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/conf/cifar100/2_512_300E_t4_l20.yml \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/outputs/cifar100/T_4 \
+--time-steps 4 \
+--recurrent_coding \
+--pe_type stf_2 \
+--maxpooling_lif_change_order \
+--temporal_conv_type conv2d \
+--experiment stf_2_conv2d_maxpooling_lif_changed
 
 
 
 
-## cifar10dvs baseline T=10
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar10-dvs/2_256_200E_t10_TET.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
---time-steps 10 \
---lif_recurrent_state 000000000000000000 \
---dts-cache /zhengzeqi/vit_test/ViT_test_experiment/data/cifar10dvs/dts_cache \
---experiment baseline_cifar10dvs_T_10
 
 
 
-## cifar10dvs baseline T=16
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar10-dvs/2_256_200E_t10_TET.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
---time-steps 16 \
---lif_recurrent_state 000000000000000000 \
---dts-cache /zhengzeqi/vit_test/ViT_test_experiment/data/cifar10dvs/dts_cache \
---experiment baseline_cifar10dvs_T_16
 
 
-## cifar10dvs baseline T=24
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar10-dvs/2_256_200E_t10_TET.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
---time-steps 24 \
---lif_recurrent_state 000000000000000000 \
---dts-cache /zhengzeqi/vit_test/ViT_test_experiment/data/cifar10dvs/dts_cache \
---experiment baseline_cifar10dvs_T_24
 
 
-## cifar10dvs baseline T=32
-CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
---config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar10-dvs/2_256_200E_t10_TET.yml \
---output /zhengzeqi/top_down/spikedriven/github_version/weights \
---time-steps 32 \
---lif_recurrent_state 000000000000000000 \
---dts-cache /zhengzeqi/vit_test/ViT_test_experiment/data/cifar10dvs/dts_cache \
---experiment baseline_cifar10dvs_T_32
+
+
+
+
+
+
+
+
+

@@ -940,10 +940,10 @@ parser.add_argument(
 parser.add_argument('--recurrent_coding', action='store_true', default=False)
 parser.add_argument('--recurrent_lif', type=str, default=None, help="lif, plif, or None")
 
-# 哪些LIF神经元启用recurrent连接
-parser.add_argument('--lif_recurrent_state', type=str, default=None, 
-                    help="which LIF use recurrent connection, e.g. \
-                        'patch_embed1.proj_lif' or 'patch_embed1.proj_bn', 0 is None, 1 is recurrent")
+# # 哪些LIF神经元启用recurrent连接
+# parser.add_argument('--lif_recurrent_state', type=str, default=None, 
+#                     help="which LIF use recurrent connection, e.g. \
+#                         'patch_embed1.proj_lif' or 'patch_embed1.proj_bn', 0 is None, 1 is recurrent")
 
 # 是否启用IMP神经元
 parser.add_argument('--use_imp_lif',  action='store_true', default=False,
@@ -958,21 +958,23 @@ parser.add_argument('--spike_re_save_pth', type=str, default=False)
 parser.add_argument('--pe_type', default=None, 
                     help="position embedding methods")
 
-## use diversity_entropy_loss
-parser.add_argument('--use_dr_entropy_loss', action='store_true', default=False,
-                    help="use diversity entropy loss")
-parser.add_argument('--uniform_weight', default=0.05, type=float,
-                    help = "weight of uniform entropy")
-parser.add_argument('--uniform_code_mode', default="global", type=str,
-                    help = "the mode of calculating spike representation distribution entropy loss")
-parser.add_argument('--uniform_code_normalize', action="store_true", default=False,
-                    help = "whether normalize spike representation distribution entropy loss")
+# ## use diversity_entropy_loss
+# parser.add_argument('--use_dr_entropy_loss', action='store_true', default=False,
+#                     help="use diversity entropy loss")
+# parser.add_argument('--uniform_weight', default=0.05, type=float,
+#                     help = "weight of uniform entropy")
+# parser.add_argument('--uniform_code_mode', default="global", type=str,
+#                     help = "the mode of calculating spike representation distribution entropy loss")
+# parser.add_argument('--uniform_code_normalize', action="store_true", default=False,
+#                     help = "whether normalize spike representation distribution entropy loss")
 
 ## changed on 2025-06-17
 parser.add_argument('--dts-cache', type=str, 
                     default="/zhengzeqi/vit_test/ViT_test_experiment/data/cifar10dvs/dts_cache")
 
-
+parser.add_argument('--temporal_conv_type', default=None, help="temporal feedback conv type")
+parser.add_argument('--maxpooling_lif_change_order', action='store_true', default=False,
+                    help="whether change the order of maxpooling and lif, default is False") 
 
 
 ## finetune, changed on 2025-05-09
@@ -1102,8 +1104,10 @@ def main():
             recurrent_coding=args.recurrent_coding, # changed on 2025-04-13
             recurrent_lif=args.recurrent_lif,  # changed on 2025-04-13
             pe_type=args.pe_type,              # changed on 2025-04-17
-            diversity_loss=args.use_dr_entropy_loss, # changed on 2025-04-24
-            lif_recurrent_state=args.lif_recurrent_state, # changed on 2025-04-27
+            temporal_conv_type=args.temporal_conv_type,
+            maxpooling_lif_change_order=args.maxpooling_lif_change_order,
+            # diversity_loss=args.use_dr_entropy_loss, # changed on 2025-04-24
+            # lif_recurrent_state=args.lif_recurrent_state, # changed on 2025-04-27
         )
     else:
         model = create_model(
@@ -1874,19 +1878,19 @@ def train_one_epoch(
             input = input.contiguous(memory_format=torch.channels_last)
 
         with amp_autocast():
-            if args.use_dr_entropy_loss:
-                output, _ ,diversity_coding = model(input)
-                dr_entropy_loss = direct_code_entropy_loss(diversity_coding, T=args.time_steps, 
-                                                           mode=args.uniform_code_mode, normalize=args.uniform_code_normalize)
-                loss = (1 - args.uniform_weight) * loss_fn(output, target) + args.uniform_weight * dr_entropy_loss
+            # if args.use_dr_entropy_loss:
+            #     output, _ ,diversity_coding = model(input)
+            #     dr_entropy_loss = direct_code_entropy_loss(diversity_coding, T=args.time_steps, 
+            #                                                mode=args.uniform_code_mode, normalize=args.uniform_code_normalize)
+            #     loss = (1 - args.uniform_weight) * loss_fn(output, target) + args.uniform_weight * dr_entropy_loss
+            # else:
+            output = model(input)[0]
+            if args.TET:
+                loss = criterion.TET_loss(
+                    output, target, loss_fn, means=args.TET_means, lamb=args.TET_lamb
+                )
             else:
-                output = model(input)[0]
-                if args.TET:
-                    loss = criterion.TET_loss(
-                        output, target, loss_fn, means=args.TET_means, lamb=args.TET_lamb
-                    )
-                else:
-                    loss = loss_fn(output, target)
+                loss = loss_fn(output, target)
         sample_number += input.shape[0]
         if not args.distributed:
             losses_m.update(loss.item(), input.size(0))
