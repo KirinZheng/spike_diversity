@@ -1,0 +1,11 @@
+python -m torch.distributed.launch --nproc_per_node=3 /zhengzeqi/top_down/spikedriven/github_version/train.py \
+-c /zhengzeqi/top_down/spikedriven/github_version/conf/tiny_imagenet/6_512_300E_t4_from_cifar10.yml \
+--model sdt \
+--output /zhengzeqi/top_down/spikedriven/github_version/weights \
+--time-steps 4 \
+--batch-size 128 \
+--val-batch-size 128 \
+--recurrent_coding \
+--pe_type 3d_pe_arch_1 \
+--lif_recurrent_state 1111111111111111111111111111111111111111111111 \
+--experiment tiny_imagenet_T_4_3d_pe_arch_1_lif_recurrent_all

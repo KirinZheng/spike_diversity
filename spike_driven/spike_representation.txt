@@ -1,0 +1,154 @@
+## spike-driven transformer cifar10 ours T=6 spike representation
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
+--config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar10/2_512_300E_t4.yml \
+--output /zhengzeqi/top_down/spikedriven/github_version/weights \
+--time-steps 6 \
+--resume /zhengzeqi/top_down/spikedriven/github_version/weights/temporal_rnn_none_lif_3d_pe_arch_4_cifar10_T_6/model_best.pth.tar \
+--spike_re_eval \
+--recurrent_coding \
+--pe_type 3d_pe_arch_4 \
+--spike_hook_layer_name patch_embed.proj_conv1 \
+--lif_recurrent_state 000000000000000000 \
+--experiment tmp
+
+
+## spike-driven transformer cifar10 ours T=8 spike representation
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
+--config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar10/2_512_300E_t4.yml \
+--output /zhengzeqi/top_down/spikedriven/github_version/weights \
+--time-steps 8 \
+--resume /zhengzeqi/top_down/spikedriven/github_version/weights/temporal_rnn_none_lif_3d_pe_arch_4_cifar10_T_8/model_best.pth.tar \
+--spike_re_eval \
+--recurrent_coding \
+--pe_type 3d_pe_arch_4 \
+--spike_hook_layer_name patch_embed.proj_conv1 \
+--lif_recurrent_state 000000000000000000 \
+--experiment tmp
+
+
+## spike-driven transformer cifar100 baseline T=2 spike representation
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
+--config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar100/2_512_300E_t4.yml \
+--output /zhengzeqi/top_down/spikedriven/github_version/weights \
+--time-steps 2 \
+--resume /zhengzeqi/top_down/spikedriven/github_version/weights/baseline_cifar100_T_2/model_best.pth.tar \
+--spike_re_eval \
+--spike_hook_layer_name patch_embed.proj_lif \
+--lif_recurrent_state 000000000000000000 \
+--experiment tmp
+
+
+## spike-driven transformer cifar100 baseline T=4 spike representation
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
+--config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar100/2_512_300E_t4.yml \
+--output /zhengzeqi/top_down/spikedriven/github_version/weights \
+--time-steps 4 \
+--resume /zhengzeqi/top_down/spikedriven/github_version/weights/baseline_cifar100_T_4/model_best.pth.tar \
+--spike_re_eval \
+--spike_hook_layer_name patch_embed.proj_lif \
+--lif_recurrent_state 000000000000000000 \
+--experiment tmp
+
+
+## spike-driven transformer cifar100 baseline T=6 spike representation
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
+--config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar100/2_512_300E_t4.yml \
+--output /zhengzeqi/top_down/spikedriven/github_version/weights \
+--time-steps 6 \
+--resume /zhengzeqi/top_down/spikedriven/github_version/weights/baseline_cifar100_T_6/model_best.pth.tar \
+--spike_re_eval \
+--spike_hook_layer_name patch_embed.proj_lif \
+--lif_recurrent_state 000000000000000000 \
+--experiment tmp
+
+
+
+## spike-driven transformer cifar100 baseline T=8 spike representation
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
+--config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar100/2_512_300E_t4.yml \
+--output /zhengzeqi/top_down/spikedriven/github_version/weights \
+--time-steps 8 \
+--resume /zhengzeqi/top_down/spikedriven/github_version/weights/baseline_cifar100_T_8/model_best.pth.tar \
+--spike_re_eval \
+--spike_hook_layer_name patch_embed.proj_lif \
+--lif_recurrent_state 000000000000000000 \
+--experiment tmp
+
+
+## spike-driven transformer cifar100 baseline T=2 spike representation
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
+--config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar100/2_512_300E_t4.yml \
+--output /zhengzeqi/top_down/spikedriven/github_version/weights \
+--time-steps 2 \
+--resume /zhengzeqi/top_down/spikedriven/github_version/weights/temporal_rnn_none_lif_3d_pe_arch_4_cifar100_T_2/model_best.pth.tar \
+--spike_re_eval \
+--recurrent_coding \
+--pe_type 3d_pe_arch_4 \
+--spike_hook_layer_name patch_embed.proj_conv1 \
+--lif_recurrent_state 000000000000000000 \
+--experiment tmp
+
+
+
+## spike-driven transformer cifar100 baseline T=8 spike representation
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
+--config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar100/2_512_300E_t4.yml \
+--output /zhengzeqi/top_down/spikedriven/github_version/weights \
+--time-steps 8 \
+--resume /zhengzeqi/top_down/spikedriven/github_version/weights/temporal_rnn_none_lif_3d_pe_arch_5_cifar100_T_8/model_best.pth.tar \
+--spike_re_eval \
+--recurrent_coding \
+--pe_type 3d_pe_arch_5 \
+--spike_hook_layer_name patch_embed.proj_conv1 \
+--lif_recurrent_state 000000000000000000 \
+--experiment tmp
+
+
+
+
+## spike-driven trainsformer cifar100 baseline T=2 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
+--config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar100/2_512_300E_t4.yml \
+--output /zhengzeqi/top_down/spikedriven/github_version/weights \
+--time-steps 2 \
+--resume /zhengzeqi/top_down/spikedriven/github_version/weights/baseline_cifar100_T_2/model_best.pth.tar \
+--eval \
+--lif_recurrent_state 000000000000000000 \
+--experiment tmp
+
+
+
+## spike-driven trainsformer cifar100 baseline T=4 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
+--config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar100/2_512_300E_t4.yml \
+--output /zhengzeqi/top_down/spikedriven/github_version/weights \
+--time-steps 4 \
+--resume /zhengzeqi/top_down/spikedriven/github_version/weights/baseline_cifar100_T_4/model_best.pth.tar \
+--eval \
+--lif_recurrent_state 000000000000000000 \
+--experiment tmp
+
+
+## spike-driven trainsformer cifar100 baseline T=6 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
+--config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar100/2_512_300E_t4.yml \
+--output /zhengzeqi/top_down/spikedriven/github_version/weights \
+--time-steps 6 \
+--resume /zhengzeqi/top_down/spikedriven/github_version/weights/baseline_cifar100_T_6/model_best.pth.tar \
+--eval \
+--lif_recurrent_state 000000000000000000 \
+--experiment tmp
+
+
+## spike-driven trainsformer cifar100 baseline T=8 inference time
+CUDA_VISIBLE_DEVICES=0 python /zhengzeqi/top_down/spikedriven/github_version/train.py \
+--config /zhengzeqi/top_down/spikedriven/github_version/conf/cifar100/2_512_300E_t4.yml \
+--output /zhengzeqi/top_down/spikedriven/github_version/weights \
+--time-steps 8 \
+--resume /zhengzeqi/top_down/spikedriven/github_version/weights/baseline_cifar100_T_8/model_best.pth.tar \
+--eval \
+--lif_recurrent_state 000000000000000000 \
+--experiment tmp
+
+
+

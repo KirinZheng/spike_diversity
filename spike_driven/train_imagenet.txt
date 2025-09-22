@@ -1,0 +1,20 @@
+## finetune sd_6_512
+python -m torch.distributed.launch --nproc_per_node=1 /zhengzeqi/top_down/spikedriven/github_version/train.py \
+-c /zhengzeqi/top_down/spikedriven/github_version/conf/imagenet/6_512_300E_t4.yml \
+--model sdt \
+--output /zhengzeqi/top_down/spikedriven/github_version/weights \
+--time-steps 4 \
+--batch-size 48 \
+--val-batch-size 48 \
+--finetune /zhengzeqi/top_down/spikedriven/github_version/official_weights/imagenet/6_512.pth.tar \
+--cooldown-epochs 0 \
+--warmup-epochs 0 \
+--lr 2e-5 \
+--min-lr 6e-9 \
+--epochs 20 \
+--recurrent_coding \
+--pe_type 3d_pe_arch_1 \
+--lif_recurrent_state 0000000000000000000000000000000000000000000000 \
+--experiment tmp
+
+--experiment imagenet_T_4_3d_pe_arch_1_6_512_finetune
