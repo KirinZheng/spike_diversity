@@ -109,3 +109,19 @@ python /zhengzeqi/spike_diversity/spikformer/cifar10_stf/train.py \
 --experiment stf_2_conv2d
 
 
+
+## cifar 10, stf_2+no 3dpe+conv2d+dense connection, T=4, l40
+python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10_stf/train.py \
+-T 4 \
+--seed 42 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10_stf/cifar10_l20.yml \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10_stf/outputs/cifar10/T_4/ \
+--recurrent_coding \
+--pe_type stf_2 \
+--temporal_conv_type conv2d \
+--maxpooling_lif_change_order \
+--dense_connection \
+--dense_connection_epoch 0 \
+--experiment stf_2_conv2d_maxpooling_lif_changed_dense_connection_start_0
+
+

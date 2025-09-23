@@ -7,10 +7,47 @@ from timm.models.vision_transformer import _cfg
 import torch.nn.functional as F
 from functools import partial
 
-from embeddings import get_3d_sincos_pos_embed, get_sinusoid_spatial_temporal_encoding
+from torch import Tensor
+from einops import rearrange
 
 __all__ = ['spikformer']
 
+# changed on 2025-08-15, 计算QKAttention中的动态连接
+class DynamiceResidualBlock(nn.Module):
+    def __init__(self, lidx: int, dim: int, C: int, last_layer: bool=False, expand_last: bool=False, round64: bool=True,) -> None:
+        super().__init__()
+        self.C = C if not last_layer else 1      # qkvr
+        self.lidx = lidx
+        self.dim = dim
+        
+        l = lidx + 2
+        hid_dim, out_dim = l * self.C, l * self.C
+        if last_layer and expand_last: hid_dim *= 4  
+        if round64: hid_dim = (hid_dim// 64 +1) * 64 
+        self.w1 = nn.Conv1d(self.dim, hid_dim, kernel_size=1, stride=1, bias=False)
+        self.w1_bn = nn.BatchNorm1d(hid_dim)
+        self.act_lif = MultiStepLIFNode(tau=2.0, detach_reset=True, backend='cupy')
+        self.w2 = nn.Conv1d(hid_dim, out_dim, kernel_size=1, stride=1, bias=False)
+        self.w2_bn = nn.BatchNorm1d(out_dim)
+    
+    def forward(self, x: Tensor) -> Tensor:
+
+        T, B, C, H, W = x.shape
+        x = x.flatten(3) # T B C N
+        _, _, _, N = x.shape
+        x_for_qkvr = x.flatten(0, 1) # (T B) C N
+
+        x_for_qkvr = self.w1_bn(self.w1(x_for_qkvr)).reshape(T, B, -1, N)
+        x_for_qkvr = self.act_lif(x_for_qkvr).flatten(0, 1) # (T B) C N
+        x_for_qkvr = self.w2_bn(self.w2(x_for_qkvr)).reshape(T, B, -1, H, W) # T B (lidx+2)4 H W
+
+        dw = rearrange(x_for_qkvr, 'T B (C L) H W -> C T B L H W', C=self.C)
+        return dw   # 4 T B lidx+2 H W
+    
+    def layer_mix(self, hids, dw)-> Tensor:
+        # dw [4 T B lidx+2 H W]  hids [T B C H W]
+        x = tuple([sum(dw[cidx,:,:,j,None,:,:] * hids[j] for j in range(self.lidx+2)) for cidx in range(self.C)])
+        return x    # [T B C H W] 共四组
 
 class MLP(nn.Module):
     def __init__(self, in_features, hidden_features=None, out_features=None, drop=0.):
@@ -29,14 +66,18 @@ class MLP(nn.Module):
         self.c_output = out_features
 
     def forward(self, x):
-        T,B,N,C = x.shape
+        
+        # T,B,N,C = x.shape
+        T, B, C, H, W = x.shape
+        N = H*W
+        x = x.flatten(-2).transpose(-1, -2)  # T,B,N,C
         x_ = x.flatten(0, 1)
         x = self.fc1_linear(x_)
         x = self.fc1_bn(x.transpose(-1, -2)).transpose(-1, -2).reshape(T, B, N, self.c_hidden).contiguous()
         x = self.fc1_lif(x)
 
         x = self.fc2_linear(x.flatten(0,1))
-        x = self.fc2_bn(x.transpose(-1, -2)).transpose(-1, -2).reshape(T, B, N, C).contiguous()
+        x = self.fc2_bn(x.transpose(-1, -2)).transpose(-1, -2).reshape(T, B, C, H, W).contiguous()
         x = self.fc2_lif(x)
         return x
 
@@ -66,31 +107,65 @@ class SSA(nn.Module):
         self.proj_lif = MultiStepLIFNode(tau=2.0, detach_reset=True, backend='cupy')
 
     def forward(self, x):
-        T,B,N,C = x.shape
+        if isinstance(x, torch.Tensor):
+            # T,B,N,C = x.shape
+            T, B, C, H, W = x.shape
+            N = H*W
+            x = x.flatten(-2).transpose(-1, -2)     # T B N C
 
-        x_for_qkv = x.flatten(0, 1)  # TB, N, C
-        q_linear_out = self.q_linear(x_for_qkv)  # [TB, N, C]
-        q_linear_out = self.q_bn(q_linear_out. transpose(-1, -2)).transpose(-1, -2).reshape(T, B, N, C).contiguous()
-        q_linear_out = self.q_lif(q_linear_out)
-        q = q_linear_out.reshape(T, B, N, self.num_heads, C//self.num_heads).permute(0, 1, 3, 2, 4).contiguous()
+            x_for_qkv = x.flatten(0, 1)  # TB, N, C
+            q_linear_out = self.q_linear(x_for_qkv)  # [TB, N, C]
+            q_linear_out = self.q_bn(q_linear_out. transpose(-1, -2)).transpose(-1, -2).reshape(T, B, N, C).contiguous()
+            q_linear_out = self.q_lif(q_linear_out)
+            q = q_linear_out.reshape(T, B, N, self.num_heads, C//self.num_heads).permute(0, 1, 3, 2, 4).contiguous()
 
-        k_linear_out = self.k_linear(x_for_qkv)
-        k_linear_out = self.k_bn(k_linear_out. transpose(-1, -2)).transpose(-1, -2).reshape(T, B, N, C).contiguous()
-        k_linear_out = self.k_lif(k_linear_out)
-        k = k_linear_out.reshape(T, B, N, self.num_heads, C//self.num_heads).permute(0, 1, 3, 2, 4).contiguous()
+            k_linear_out = self.k_linear(x_for_qkv)
+            k_linear_out = self.k_bn(k_linear_out. transpose(-1, -2)).transpose(-1, -2).reshape(T, B, N, C).contiguous()
+            k_linear_out = self.k_lif(k_linear_out)
+            k = k_linear_out.reshape(T, B, N, self.num_heads, C//self.num_heads).permute(0, 1, 3, 2, 4).contiguous()
 
-        v_linear_out = self.v_linear(x_for_qkv)
-        v_linear_out = self.v_bn(v_linear_out. transpose(-1, -2)).transpose(-1, -2).reshape(T, B, N, C).contiguous()
-        v_linear_out = self.v_lif(v_linear_out)
-        v = v_linear_out.reshape(T, B, N, self.num_heads, C//self.num_heads).permute(0, 1, 3, 2, 4).contiguous()
+            v_linear_out = self.v_linear(x_for_qkv)
+            v_linear_out = self.v_bn(v_linear_out. transpose(-1, -2)).transpose(-1, -2).reshape(T, B, N, C).contiguous()
+            v_linear_out = self.v_lif(v_linear_out)
+            v = v_linear_out.reshape(T, B, N, self.num_heads, C//self.num_heads).permute(0, 1, 3, 2, 4).contiguous()
 
-        attn = (q @ k.transpose(-2, -1)) * self.scale
-        x = attn @ v
-        x = x.transpose(2, 3).reshape(T, B, N, C).contiguous()
-        x = self.attn_lif(x)
-        x = x.flatten(0, 1)
-        x = self.proj_lif(self.proj_bn(self.proj_linear(x).transpose(-1, -2)).transpose(-1, -2).reshape(T, B, N, C))
-        return x
+            attn = (q @ k.transpose(-2, -1)) * self.scale
+            x = attn @ v
+            x = x.transpose(2, 3).reshape(T, B, N, C).contiguous()
+            x = self.attn_lif(x)
+            x = x.flatten(0, 1)
+            x = self.proj_lif(self.proj_bn(self.proj_linear(x).transpose(-1, -2)).reshape(T, B, C, H, W))
+            return x   # T B C H W
+        elif isinstance(x, tuple):
+            xq, xk, xv = x[0], x[1], x[2]
+            T, B, C, H, W = xq.shape  # qkv shape is the same
+            N = H*W
+            xq = xq.flatten(3).transpose(-1, -2).flatten(0, 1)  # TB N C
+            xk = xk.flatten(3).transpose(-1, -2).flatten(0, 1)
+            xv = xv.flatten(3).transpose(-1, -2).flatten(0, 1)
+
+            q_linear_out = self.q_linear(xq)  # [TB, N, C]
+            q_linear_out = self.q_bn(q_linear_out. transpose(-1, -2)).transpose(-1, -2).reshape(T, B, N, C).contiguous()
+            q_linear_out = self.q_lif(q_linear_out)
+            q = q_linear_out.reshape(T, B, N, self.num_heads, C//self.num_heads).permute(0, 1, 3, 2, 4).contiguous()
+
+            k_linear_out = self.k_linear(xk)
+            k_linear_out = self.k_bn(k_linear_out. transpose(-1, -2)).transpose(-1, -2).reshape(T, B, N, C).contiguous()
+            k_linear_out = self.k_lif(k_linear_out)
+            k = k_linear_out.reshape(T, B, N, self.num_heads, C//self.num_heads).permute(0, 1, 3, 2, 4).contiguous()
+
+            v_linear_out = self.v_linear(xv)
+            v_linear_out = self.v_bn(v_linear_out. transpose(-1, -2)).transpose(-1, -2).reshape(T, B, N, C).contiguous()
+            v_linear_out = self.v_lif(v_linear_out)
+            v = v_linear_out.reshape(T, B, N, self.num_heads, C//self.num_heads).permute(0, 1, 3, 2, 4).contiguous()
+
+            attn = (q @ k.transpose(-2, -1)) * self.scale
+            x = attn @ v
+            x = x.transpose(2, 3).reshape(T, B, N, C).contiguous()
+            x = self.attn_lif(x)
+            x = x.flatten(0, 1)
+            x = self.proj_lif(self.proj_bn(self.proj_linear(x).transpose(-1, -2)).reshape(T, B, C, H, W))
+            return x   # T B C H W
 
 class Block(nn.Module):
     def __init__(self, dim, num_heads, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop=0., attn_drop=0.,
@@ -103,10 +178,18 @@ class Block(nn.Module):
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = MLP(in_features=dim, hidden_features=mlp_hidden_dim, drop=drop)
 
-    def forward(self, x):
-        x = x + self.attn(x)
-        x = x + self.mlp(x)
-        return x
+    def forward(self, x):  
+        if isinstance(x, torch.Tensor):
+            ## T B C H W
+            x = x + self.attn(x)
+            x = x + self.mlp(x)
+            return x    # T B C H W
+        elif isinstance(x, tuple):
+            # T B C H W
+            res = x[-1]
+            h = res + self.attn(x)
+            out = h + self.mlp(h)
+            return out  # T B C H W
 
 
 class SPS(nn.Module):
@@ -269,7 +352,8 @@ class SPS(nn.Module):
         x = self.rpe_lif(x)
         x = x + x_feat
 
-        x = x.flatten(-2).transpose(-1, -2)  # T,B,N,C
+        # x = x.flatten(-2).transpose(-1, -2)  # T,B,N,C
+        # T B C H W
         return x
 
 
@@ -440,7 +524,8 @@ class SPS_Maxpooling_LIF_changed(nn.Module):
         x = self.rpe_lif(x)
         x = x + x_feat
 
-        x = x.flatten(-2).transpose(-1, -2)  # T,B,N,C
+        # x = x.flatten(-2).transpose(-1, -2)  # T,B,N,C
+        # T B C H W
         return x
 
 
@@ -453,6 +538,7 @@ class Spikformer(nn.Module):
                  depths=[6, 8, 6], sr_ratios=[8, 4, 2], T = 4, 
                  recurrent_coding=False, recurrent_lif=None, # changed on 2025-04-13
                  pe_type=None, temporal_conv_type=None, maxpooling_lif_change_order=False,
+                 dense_connection=False,
                  ):
         super().__init__()
         self.T = T  # time step
@@ -468,6 +554,7 @@ class Spikformer(nn.Module):
         self.pe_type = pe_type
         self.temporal_conv_type = temporal_conv_type
         self.maxpooling_lif_change_order = maxpooling_lif_change_order
+        self.dense_connection = dense_connection
 
         if not maxpooling_lif_change_order:
             patch_embed = SPS(img_size_h=img_size_h,
@@ -499,8 +586,17 @@ class Spikformer(nn.Module):
             norm_layer=norm_layer, sr_ratio=sr_ratios)
             for j in range(depths)])
 
+        if self.dense_connection:
+            # Block qkvr C=4
+            block_da = nn.ModuleList([DynamiceResidualBlock(lidx=lidx, dim=embed_dims, C=4, 
+                last_layer=lidx==depths-1, expand_last=True, round64=True) for lidx in range(depths)])
+            block_bs = nn.ParameterList([nn.Parameter(data=torch.randn(4 if lidx != depths-1 else 1, lidx+2)) for lidx in range(depths)])
+
         setattr(self, f"patch_embed", patch_embed)
         setattr(self, f"block", block)
+        if self.dense_connection:
+            setattr(self, f"block_da", block_da)
+            setattr(self, f"block_bs", block_bs)
 
         # classification head
         self.head = nn.Linear(embed_dims, num_classes) if num_classes > 0 else nn.Identity()
@@ -524,19 +620,37 @@ class Spikformer(nn.Module):
             nn.init.constant_(m.bias, 0)
             nn.init.constant_(m.weight, 1.0)
 
-    def forward_features(self, x):
+    def forward_features(self, x, use_dense_connection=False):
 
         block = getattr(self, f"block")
         patch_embed = getattr(self, f"patch_embed")
+        if self.dense_connection and use_dense_connection:
+            block_da = getattr(self, f"block_da")
+            block_bs = getattr(self, f"block_bs")
 
         x = patch_embed(x)
+        if self.dense_connection and use_dense_connection:
+            hiddens = [x] # T B C H W
+            idx = 0
         for blk in block:
             x = blk(x)
-        return x.mean(2)
+            if self.dense_connection and use_dense_connection:
+                
+                hiddens.append(x)   # T B C H W
+                dw = block_da[idx](x) # 4 T B lidx+2 H W
+                dw = dw + block_bs[idx][:, None, None, :, None, None]  # 4 T B lidx+2 H W
+                x = block_da[idx].layer_mix(hiddens, dw)
+                idx += 1
+        if self.dense_connection and use_dense_connection:
+            x = x[0]
+            # T B C H W
 
-    def forward(self, x):
+        x = x.flatten(3).mean(3)    # T B C
+        return x
+
+    def forward(self, x, use_dense_connection=False):
         x = (x.unsqueeze(0)).repeat(self.T, 1, 1, 1, 1)
-        x = self.forward_features(x)
+        x = self.forward_features(x, use_dense_connection=use_dense_connection)
         x = self.head(x.mean(0))
         return x
 
@@ -557,5 +671,6 @@ def spikformer(pretrained=False, **kwargs):
     print(f"pe_type: {model.pe_type}")
     print(f"temporal_conv_type: {model.temporal_conv_type}")
     print(f"maxpooling_lif_change_orderL: {model.maxpooling_lif_change_order}")
+    print(f"dense_connection: {model.dense_connection}")
 
     return model

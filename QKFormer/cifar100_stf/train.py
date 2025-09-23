@@ -313,6 +313,10 @@ parser.add_argument('--recurrent_lif', type=str, default=None, help="lif, plif, 
 parser.add_argument('--pe_type', default=None, help="position embedding methods")
 parser.add_argument('--temporal_conv_type', default=None, help="temporal feedback conv type")
 
+## changed on 2025-09-22
+parser.add_argument('--dense_connection', action='store_true', default=False, help="use dense connection or not")
+parser.add_argument('--dense_connection_epoch', type=int, default=100, metavar='N', help='number of epochs to start to use dense connection (default: 2)')
+
 
 def _parse_args():
     # Do we have a config file to parse?
@@ -395,7 +399,8 @@ def main():
         recurrent_coding=args.recurrent_coding,
         recurrent_lif=args.recurrent_lif,
         pe_type=args.pe_type,
-        temporal_conv_type=args.temporal_conv_type
+        temporal_conv_type=args.temporal_conv_type,
+        dense_connection=args.dense_connection,
    )
 
 
@@ -638,7 +643,8 @@ def main():
                     _logger.info("Distributing BatchNorm running means and vars")
                 distribute_bn(model, args.world_size, args.dist_bn == 'reduce')
 
-            eval_metrics = validate(model, loader_eval, validate_loss_fn, args, amp_autocast=amp_autocast)
+            # changed on 2025-09-22
+            eval_metrics = validate(model, loader_eval, validate_loss_fn, args, amp_autocast=amp_autocast, epoch=epoch)
 
             if model_ema is not None and not args.model_ema_force_cpu:
                 if args.distributed and args.dist_bn in ('broadcast', 'reduce'):
@@ -700,7 +706,11 @@ def train_one_epoch(
             input = input.contiguous(memory_format=torch.channels_last)
 
         with amp_autocast():
-            output = model(input)
+            # changed on 2025-09-22
+            if args.dense_connection and epoch >= args.dense_connection_epoch:
+                output = model(input, use_dense_connection=True)
+            else:
+                output = model(input)
             loss = loss_fn(output, target)
 
         if not args.distributed:
@@ -779,7 +789,7 @@ def train_one_epoch(
     return OrderedDict([('loss', losses_m.avg)])
 
 
-def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix=''):
+def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix='', epoch=0):
     batch_time_m = AverageMeter()
     losses_m = AverageMeter()
     top1_m = AverageMeter()
@@ -799,7 +809,11 @@ def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix='')
                 input = input.contiguous(memory_format=torch.channels_last)
 
             with amp_autocast():
-                output = model(input)
+                if args.dense_connection and epoch >= args.dense_connection_epoch:
+                    output = model(input, use_dense_connection=True)
+                else:
+                    output = model(input)
+
             if isinstance(output, (tuple, list)):
                 output = output[0]
 
