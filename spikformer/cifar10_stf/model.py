@@ -12,6 +12,32 @@ from einops import rearrange
 
 __all__ = ['spikformer']
 
+
+class InPlaceSetSlice(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, full_tensor, last_slice, x_idx, x_val):
+        full_tensor[x_idx] = x_val
+        ctx.x_idx = x_idx
+        ret = torch.empty(0, device=full_tensor.device, dtype=full_tensor.dtype)
+        ret.set_(full_tensor[:x_idx + 1])
+        return ret
+
+    @staticmethod
+    def backward(ctx, grad_out):
+        if ctx.x_idx == 0:
+            return None, None, None, grad_out[ctx.x_idx]
+        else:
+            return None, grad_out[:ctx.x_idx], None, grad_out[ctx.x_idx]
+
+
+## changed on 2025-09-16
+def apply_inplace_set(x_acc, x_idx, x_val):
+    full_tensor, last_slice = x_acc
+    new_slice = InPlaceSetSlice.apply(full_tensor, last_slice, x_idx, x_val)
+    return full_tensor, new_slice
+
+
 # changed on 2025-08-15, 计算QKAttention中的动态连接
 class DynamiceResidualBlock(nn.Module):
     def __init__(self, lidx: int, dim: int, C: int, last_layer: bool=False, expand_last: bool=False, round64: bool=True,) -> None:
@@ -538,7 +564,7 @@ class Spikformer(nn.Module):
                  depths=[6, 8, 6], sr_ratios=[8, 4, 2], T = 4, 
                  recurrent_coding=False, recurrent_lif=None, # changed on 2025-04-13
                  pe_type=None, temporal_conv_type=None, maxpooling_lif_change_order=False,
-                 dense_connection=False,
+                 dense_connection=False, dense_easy_connection=False,
                  ):
         super().__init__()
         self.T = T  # time step
@@ -548,6 +574,8 @@ class Spikformer(nn.Module):
         
         assert pe_type in ("stf_1", "stf_2"), f"Invalid pe_type: {pe_type}, must be 'stf_1' or 'stf_2'"
         assert temporal_conv_type in ("conv1d", "conv2d"), f"Invalid temporal_conv_type: {pe_type}, must be 'conv1d' or 'conv2d'"
+        assert (not dense_connection and not dense_easy_connection) or (dense_connection ^ dense_easy_connection), \
+                "Invalid config: set at most one of 'dense_connection' and 'dense_easy_connection' to True."
 
         self.recurrent_coding = recurrent_coding
         self.recurrent_lif = recurrent_lif
@@ -555,6 +583,7 @@ class Spikformer(nn.Module):
         self.temporal_conv_type = temporal_conv_type
         self.maxpooling_lif_change_order = maxpooling_lif_change_order
         self.dense_connection = dense_connection
+        self.dense_easy_connection = dense_easy_connection
 
         if not maxpooling_lif_change_order:
             patch_embed = SPS(img_size_h=img_size_h,
@@ -592,6 +621,15 @@ class Spikformer(nn.Module):
                 last_layer=lidx==depths-1, expand_last=True, round64=True) for lidx in range(depths)])
             block_bs = nn.ParameterList([nn.Parameter(data=torch.randn(4 if lidx != depths-1 else 1, lidx+2)) for lidx in range(depths)])
 
+        if self.dense_easy_connection:
+            self.n_repeat = (depths) // 1
+            self.dilation_factor = 1
+            self.increate_T_every = 1
+            self.weights = nn.ModuleList([
+                    nn.Linear((i + 2 + self.dilation_factor - 1) // self.dilation_factor, 1, bias=False) 
+                    for i in range(self.n_repeat)
+                ])
+
         setattr(self, f"patch_embed", patch_embed)
         setattr(self, f"block", block)
         if self.dense_connection:
@@ -601,6 +639,11 @@ class Spikformer(nn.Module):
         # classification head
         self.head = nn.Linear(embed_dims, num_classes) if num_classes > 0 else nn.Identity()
         self.apply(self._init_weights)
+
+        if self.dense_easy_connection:
+            for module in self.weights:
+                module.weight.data.zero_()
+                module.weight.data[:,0] = 1.
 
     @torch.jit.ignore
     def _get_pos_embed(self, pos_embed, patch_embed, H, W):
@@ -629,21 +672,52 @@ class Spikformer(nn.Module):
             block_bs = getattr(self, f"block_bs")
 
         x = patch_embed(x)
-        if self.dense_connection and use_dense_connection:
-            hiddens = [x] # T B C H W
-            idx = 0
-        for blk in block:
-            x = blk(x)
-            if self.dense_connection and use_dense_connection:
+
+        if self.dense_connection:
+            if use_dense_connection:
+                hiddens = [x] # T B C H W
+                idx = 0
+            for blk in block:
+                x = blk(x)
+                if use_dense_connection:
+                    
+                    hiddens.append(x)   # T B C H W
+                    dw = block_da[idx](x) # 4 T B lidx+2 H W
+                    dw = dw + block_bs[idx][:, None, None, :, None, None]  # 4 T B lidx+2 H W
+                    x = block_da[idx].layer_mix(hiddens, dw)
+                    idx += 1
+            if use_dense_connection:
+                x = x[0]
+                # T B C H W
+        elif self.dense_easy_connection:
+            if use_dense_connection:
+                hiddens = []
+                for i in range(self.dilation_factor):
+                    current_group_size = (self.n_repeat + 1) // self.dilation_factor
+                    if i < (self.n_repeat + 1) % self.dilation_factor:
+                        current_group_size += 1
+                    
+                    hiddens.append((torch.zeros((current_group_size, *x.shape), device=x.device,
+                        dtype=x.dtype),  None))
                 
-                hiddens.append(x)   # T B C H W
-                dw = block_da[idx](x) # 4 T B lidx+2 H W
-                dw = dw + block_bs[idx][:, None, None, :, None, None]  # 4 T B lidx+2 H W
-                x = block_da[idx].layer_mix(hiddens, dw)
-                idx += 1
-        if self.dense_connection and use_dense_connection:
-            x = x[0]
-            # T B C H W
+                # 加入patch_embed3中的输出
+                hiddens[0] = apply_inplace_set(hiddens[0], 0, x)
+
+                for rep_idx in range(1, self.n_repeat + 1):
+                    for i in range(self.increate_T_every):
+                        x = block[(rep_idx - 1) * self.increate_T_every  + i](x)
+                    hiddens[rep_idx % self.dilation_factor] = apply_inplace_set(
+                        hiddens[rep_idx % self.dilation_factor], 
+                        rep_idx // self.dilation_factor, 
+                        x,
+                    )
+                    x = torch.tensordot(self.weights[rep_idx - 1].weight.view(-1), 
+                                        hiddens[rep_idx % self.dilation_factor][1], dims=1)
+
+        
+        else:
+            for blk in block:
+                x = blk(x)
 
         x = x.flatten(3).mean(3)    # T B C
         return x
@@ -672,5 +746,6 @@ def spikformer(pretrained=False, **kwargs):
     print(f"temporal_conv_type: {model.temporal_conv_type}")
     print(f"maxpooling_lif_change_orderL: {model.maxpooling_lif_change_order}")
     print(f"dense_connection: {model.dense_connection}")
+    print(f"dense_easy_connection: {model.dense_easy_connection}")
 
     return model

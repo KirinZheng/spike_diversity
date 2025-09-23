@@ -11,6 +11,31 @@ from einops import rearrange
 
 __all__ = ['QKFormer']
 
+class InPlaceSetSlice(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, full_tensor, last_slice, x_idx, x_val):
+        full_tensor[x_idx] = x_val
+        ctx.x_idx = x_idx
+        ret = torch.empty(0, device=full_tensor.device, dtype=full_tensor.dtype)
+        ret.set_(full_tensor[:x_idx + 1])
+        return ret
+
+    @staticmethod
+    def backward(ctx, grad_out):
+        if ctx.x_idx == 0:
+            return None, None, None, grad_out[ctx.x_idx]
+        else:
+            return None, grad_out[:ctx.x_idx], None, grad_out[ctx.x_idx]
+
+
+## changed on 2025-09-16
+def apply_inplace_set(x_acc, x_idx, x_val):
+    full_tensor, last_slice = x_acc
+    new_slice = InPlaceSetSlice.apply(full_tensor, last_slice, x_idx, x_val)
+    return full_tensor, new_slice
+
+
 # changed on 2025-08-15, 计算QKAttention中的动态连接
 class DynamiceResidualBlock(nn.Module):
     def __init__(self, lidx: int, dim: int, last_layer: bool=False, expand_last: bool=False, round64: bool=True) -> None:
@@ -452,6 +477,7 @@ class spiking_transformer(nn.Module):
                  depths=[6, 8, 6], sr_ratios=[8, 4, 2], T=4, pretrained_cfg=None,
                  recurrent_coding=False, recurrent_lif=None, pe_type=None,
                  temporal_conv_type=None, dense_connection=False,
+                 dense_easy_connection=False,
                  ):
         super().__init__()
         self.num_classes = num_classes
@@ -462,12 +488,15 @@ class spiking_transformer(nn.Module):
 
         assert pe_type in ("stf_1", "stf_2"), f"Invalid pe_type: {pe_type}, must be 'stf_1' or 'stf_2'"
         assert temporal_conv_type in ("conv1d", "conv2d"), f"Invalid temporal_conv_type: {temporal_conv_type}, must be 'conv1d' or 'conv2d'"
+        assert (not dense_connection and not dense_easy_connection) or (dense_connection ^ dense_easy_connection), \
+                "Invalid config: set at most one of 'dense_connection' and 'dense_easy_connection' to True."
 
         self.recurrent_coding = recurrent_coding
         self.recurrent_lif = recurrent_lif
         self.pe_type = pe_type
         self.temporal_conv_type = temporal_conv_type
         self.dense_connection = dense_connection        # changed on 2025-09-22
+        self.dense_easy_connection = dense_easy_connection
 
         patch_embed1 = PatchEmbedInit(img_size_h=img_size_h,
                                        img_size_w=img_size_w,
@@ -518,6 +547,14 @@ class spiking_transformer(nn.Module):
 
             dense_bs = nn.ParameterList([nn.Parameter(data=torch.randn(4 if lidx != depths-2-1 else 1, lidx+2)) for lidx in range(depths-2)])
 
+        if self.dense_easy_connection:
+            self.n_repeat = (depths - 2) // 1
+            self.dilation_factor = 1
+            self.increate_T_every = 1
+            self.weights = nn.ModuleList([
+                    nn.Linear((i + 2 + self.dilation_factor - 1) // self.dilation_factor, 1, bias=False) 
+                    for i in range(self.n_repeat)
+                ])
 
         setattr(self, f"patch_embed1", patch_embed1)
         setattr(self, f"patch_embed2", patch_embed2)
@@ -533,6 +570,11 @@ class spiking_transformer(nn.Module):
         # classification head
         self.head = nn.Linear(embed_dims, num_classes) if num_classes > 0 else nn.Identity()
         self.apply(self._init_weights)
+
+        if self.dense_easy_connection:
+            for module in self.weights:
+                module.weight.data.zero_()
+                module.weight.data[:,0] = 1.
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -566,24 +608,59 @@ class spiking_transformer(nn.Module):
 
         x = patch_embed3(x)
 
-        # changed on 2025-09-22
-        if self.dense_connection and use_dense_connection:
-            hiddens = [x]  # [T B C H W]
-            idx = 0
-
-        for blk in stage3:
-            x = blk(x)
+        if self.dense_connection:
             # changed on 2025-09-22
-            if self.dense_connection and use_dense_connection:
-                hiddens.append(x)  # T B C H W
-                dw = stage3_da[idx](x)   # 4 T B lidx+2 H W
-                dw = dw + dense_bs[idx][:, None, None, :, None, None]  # 4 T B lidx+2 H W
-                x = stage3_da[idx].layer_mix(hiddens, dw)
-                idx += 1
-        
-        # changed on 2025-09-22
-        if self.dense_connection and use_dense_connection:
-            x = x[0]
+            if use_dense_connection:
+                hiddens = [x]  # [T B C H W]
+                idx = 0
+
+            for blk in stage3:
+                x = blk(x)
+                # changed on 2025-09-22
+                if use_dense_connection:
+                    hiddens.append(x)  # T B C H W
+                    dw = stage3_da[idx](x)   # 4 T B lidx+2 H W
+                    dw = dw + dense_bs[idx][:, None, None, :, None, None]  # 4 T B lidx+2 H W
+                    x = stage3_da[idx].layer_mix(hiddens, dw)
+                    idx += 1
+            # changed on 2025-09-22
+            if use_dense_connection:
+                x = x[0]
+                
+        elif self.dense_easy_connection:
+            if use_dense_connection:
+                hiddens = []
+                for i in range(self.dilation_factor):
+                    current_group_size = (self.n_repeat + 1) // self.dilation_factor
+                    if i < (self.n_repeat + 1) % self.dilation_factor:
+                        current_group_size += 1
+                    
+                    hiddens.append((torch.zeros((current_group_size, *x.shape), device=x.device,
+                        dtype=x.dtype),  None))
+                
+                # 加入patch_embed3中的输出
+                hiddens[0] = apply_inplace_set(hiddens[0], 0, x)
+
+
+                for rep_idx in range(1, self.n_repeat + 1):
+                    print(rep_idx)
+                    for i in range(self.increate_T_every):
+                        print(i)
+                        x = stage3[(rep_idx - 1) * self.increate_T_every  + i](x)
+                    hiddens[rep_idx % self.dilation_factor] = apply_inplace_set(
+                        hiddens[rep_idx % self.dilation_factor], 
+                        rep_idx // self.dilation_factor, 
+                        x,
+                    )
+                    x = torch.tensordot(self.weights[rep_idx - 1].weight.view(-1), 
+                                        hiddens[rep_idx % self.dilation_factor][1], dims=1)
+            else:
+                for blk in stage3:
+                    x = blk(x)
+        # none any type of dynamic dense connection, baseline code
+        else: 
+            for blk in stage3:
+                x = blk(x)
 
         return x.flatten(3).mean(3)
 
@@ -606,6 +683,7 @@ def QKFormer(pretrained=False, **kwargs):
     print(f"pe_type: {model.pe_type}")
     print(f"temporal_conv_type: {model.temporal_conv_type}")
     print(f"dense_connection: {model.dense_connection}")
+    print(f"dense_easy_connection: {model.dense_easy_connection}")
     return model
 
 
