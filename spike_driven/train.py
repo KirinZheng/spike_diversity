@@ -987,6 +987,18 @@ parser.add_argument(
 parser.add_argument("--eval", action='store_true', default=False)
 
 
+## changed on 2025-08-30
+parser.add_argument(
+    "--dense_connection",
+    action='store_true', default=False, help="use dense connection or not"
+)
+parser.add_argument(
+    '--dense_connection_epoch', 
+    type=int, default=100, metavar='N', 
+    help='number of epochs to start to use dense connection (default: 2)'
+)
+
+
 
 _logger = logging.getLogger("train")
 stream_handler = logging.StreamHandler()
@@ -1106,6 +1118,7 @@ def main():
             pe_type=args.pe_type,              # changed on 2025-04-17
             temporal_conv_type=args.temporal_conv_type,
             maxpooling_lif_change_order=args.maxpooling_lif_change_order,
+            dense_connection=args.dense_connection,
             # diversity_loss=args.use_dr_entropy_loss, # changed on 2025-04-24
             # lif_recurrent_state=args.lif_recurrent_state, # changed on 2025-04-27
         )
@@ -1727,7 +1740,7 @@ def main():
                 distribute_bn(model, args.world_size, args.dist_bn == "reduce")
 
             eval_metrics = validate(
-                model, loader_eval, validate_loss_fn, args, amp_autocast=amp_autocast
+                model, loader_eval, validate_loss_fn, args, amp_autocast=amp_autocast, epoch=epoch
             )
 
             if model_ema is not None and not args.model_ema_force_cpu:
@@ -1739,7 +1752,7 @@ def main():
                     validate_loss_fn,
                     args,
                     amp_autocast=amp_autocast,
-                    log_suffix=" (EMA)",
+                    log_suffix=" (EMA)", epoch=epoch
                 )
                 eval_metrics = ema_eval_metrics
 
@@ -1884,7 +1897,11 @@ def train_one_epoch(
             #                                                mode=args.uniform_code_mode, normalize=args.uniform_code_normalize)
             #     loss = (1 - args.uniform_weight) * loss_fn(output, target) + args.uniform_weight * dr_entropy_loss
             # else:
-            output = model(input)[0]
+            if args.dense_connection and epoch >= args.dense_connection_epoch:
+                output = model(input, use_dense_connection=True)[0]
+            else:
+                output = model(input)[0]
+        
             if args.TET:
                 loss = criterion.TET_loss(
                     output, target, loss_fn, means=args.TET_means, lamb=args.TET_lamb
@@ -2163,7 +2180,7 @@ def validate_spike_re(model, loader, loss_fn, args, amp_autocast=suppress, log_s
     return metrics
 
 
-def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix=""):
+def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix="", epoch=0, ):
     batch_time_m = AverageMeter()
     losses_m = AverageMeter()
     top1_m = AverageMeter()
@@ -2192,7 +2209,10 @@ def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix="")
                 input = input.contiguous(memory_format=torch.channels_last)
 
             with amp_autocast():
-                output = model(input)
+                if args.dense_connection and epoch >= args.dense_connection_epoch:
+                    output = model(input, use_dense_connection=True)
+                else:
+                    output = model(input)
             if isinstance(output, (tuple, list)):
                 output = output[0]
             if args.TET:

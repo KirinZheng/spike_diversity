@@ -296,152 +296,233 @@ class MS_SSA_Conv(nn.Module):
         # self.lif_recurrent_state = lif_recurrent_state   # changed on 2025-04-27
 
     def forward(self, x, hook=None):
-        T, B, C, H, W = x.shape
-        identity = x
-        N = H * W
-        # changed on 2025-04-27
-        # if self.lif_recurrent_state is not None and self.lif_recurrent_state[0] == "1":
-        #     tmp_x = []
-        #     for t in range(T):
-        #         if t == 0:
-        #             x_in = x[t]    # B C H W
-        #         else:
-        #             x_in = x[t] + x_out
-        #         x_out = self.shortcut_lif(x_in.unsqueeze(0)).squeeze(0)   # B C H W
-        #         tmp_x.append(x_out)
+        if isinstance(x, torch.Tensor):
+            T, B, C, H, W = x.shape
+            identity = x
+            N = H * W
+            # changed on 2025-04-27
+            # if self.lif_recurrent_state is not None and self.lif_recurrent_state[0] == "1":
+            #     tmp_x = []
+            #     for t in range(T):
+            #         if t == 0:
+            #             x_in = x[t]    # B C H W
+            #         else:
+            #             x_in = x[t] + x_out
+            #         x_out = self.shortcut_lif(x_in.unsqueeze(0)).squeeze(0)   # B C H W
+            #         tmp_x.append(x_out)
+                
+            #     x = torch.stack(tmp_x, dim=0)    # T B C H W
+            # else:
+            x = self.shortcut_lif(x)
             
-        #     x = torch.stack(tmp_x, dim=0)    # T B C H W
-        # else:
-        x = self.shortcut_lif(x)
-        
-        if hook is not None:
-            hook[self._get_name() + str(self.layer) + "_first_lif"] = x.detach()
+            if hook is not None:
+                hook[self._get_name() + str(self.layer) + "_first_lif"] = x.detach()
 
-        x_for_qkv = x.flatten(0, 1)
-        q_conv_out = self.q_conv(x_for_qkv)
-        q_conv_out = self.q_bn(q_conv_out).reshape(T, B, C, H, W).contiguous()
-        # changed on 2025-04-27
-        # if self.lif_recurrent_state is not None and self.lif_recurrent_state[1] == "1":
-        #     tmp_x = []
-        #     for t in range(T):
-        #         if t == 0:
-        #             x_in = q_conv_out[t]    # B C H W
-        #         else:
-        #             x_in = q_conv_out[t] + x_out
-        #         x_out = self.q_lif(x_in.unsqueeze(0)).squeeze(0)   # B C H W
-        #         tmp_x.append(x_out)
+            x_for_qkv = x.flatten(0, 1)
+            q_conv_out = self.q_conv(x_for_qkv)
+            q_conv_out = self.q_bn(q_conv_out).reshape(T, B, C, H, W).contiguous()
+            # changed on 2025-04-27
+            # if self.lif_recurrent_state is not None and self.lif_recurrent_state[1] == "1":
+            #     tmp_x = []
+            #     for t in range(T):
+            #         if t == 0:
+            #             x_in = q_conv_out[t]    # B C H W
+            #         else:
+            #             x_in = q_conv_out[t] + x_out
+            #         x_out = self.q_lif(x_in.unsqueeze(0)).squeeze(0)   # B C H W
+            #         tmp_x.append(x_out)
+                
+            #     q_conv_out = torch.stack(tmp_x, dim=0)    # T B C H W
+            # else:
+            q_conv_out = self.q_lif(q_conv_out)
+
+            if hook is not None:
+                hook[self._get_name() + str(self.layer) + "_q_lif"] = q_conv_out.detach()
+            q = (
+                q_conv_out.flatten(3)
+                .transpose(-1, -2)
+                .reshape(T, B, N, self.num_heads, C // self.num_heads)
+                .permute(0, 1, 3, 2, 4)
+                .contiguous()
+            )
+
+            k_conv_out = self.k_conv(x_for_qkv)
+            k_conv_out = self.k_bn(k_conv_out).reshape(T, B, C, H, W).contiguous()
+            # changed on 2025-04-27
+            # if self.lif_recurrent_state is not None and self.lif_recurrent_state[2] == "1":
+            #     tmp_x = []
+            #     for t in range(T):
+            #         if t == 0:
+            #             x_in = k_conv_out[t]    # B C H W
+            #         else:
+            #             x_in = k_conv_out[t] + x_out
+            #         x_out = self.k_lif(x_in.unsqueeze(0)).squeeze(0)   # B C H W
+            #         tmp_x.append(x_out)
+                
+            #     k_conv_out = torch.stack(tmp_x, dim=0)    # T B C H W
+            # else:
+            k_conv_out = self.k_lif(k_conv_out)
+
+            if self.dvs:
+                k_conv_out = self.pool(k_conv_out)
+            if hook is not None:
+                hook[self._get_name() + str(self.layer) + "_k_lif"] = k_conv_out.detach()
+            k = (
+                k_conv_out.flatten(3)
+                .transpose(-1, -2)
+                .reshape(T, B, N, self.num_heads, C // self.num_heads)
+                .permute(0, 1, 3, 2, 4)
+                .contiguous()
+            )
+
+            v_conv_out = self.v_conv(x_for_qkv)
+            v_conv_out = self.v_bn(v_conv_out).reshape(T, B, C, H, W).contiguous()
+            # changed on 2025-04-27
+            # if self.lif_recurrent_state is not None and self.lif_recurrent_state[3] == "1":
+            #     tmp_x = []
+            #     for t in range(T):
+            #         if t == 0:
+            #             x_in = v_conv_out[t]    # B C H W
+            #         else:
+            #             x_in = v_conv_out[t] + x_out
+            #         x_out = self.v_lif(x_in.unsqueeze(0)).squeeze(0)   # B C H W
+            #         tmp_x.append(x_out)
+                
+            #     v_conv_out = torch.stack(tmp_x, dim=0)    # T B C H W
+            # else:
+            v_conv_out = self.v_lif(v_conv_out)
+
+            if self.dvs:
+                v_conv_out = self.pool(v_conv_out)
+            if hook is not None:
+                hook[self._get_name() + str(self.layer) + "_v_lif"] = v_conv_out.detach()
+            v = (
+                v_conv_out.flatten(3)
+                .transpose(-1, -2)
+                .reshape(T, B, N, self.num_heads, C // self.num_heads)
+                .permute(0, 1, 3, 2, 4)
+                .contiguous()
+            )  # T B head N C//h
+
+            kv = k.mul(v)
+            if hook is not None:
+                hook[self._get_name() + str(self.layer) + "_kv_before"] = kv
+            if self.dvs:
+                kv = self.pool(kv)
+            kv = kv.sum(dim=-2, keepdim=True)           # T B head 1 C//h
+            # changed on 2025-04-27
+            # if self.lif_recurrent_state is not None and self.lif_recurrent_state[4] == "1":
+            #     tmp_x = []
+            #     for t in range(T):
+            #         if t == 0:
+            #             x_in = kv[t]    # B head 1 C//h
+            #         else:
+            #             x_in = kv[t] + x_out
+            #         x_out = self.talking_heads_lif(x_in.unsqueeze(0)).squeeze(0)   # B head 1 C//h
+            #         tmp_x.append(x_out)
+                
+            #     kv = torch.stack(tmp_x, dim=0)    # T B head 1 C//h
+            # else:
+            kv = self.talking_heads_lif(kv)
+
+            if hook is not None:
+                hook[self._get_name() + str(self.layer) + "_kv"] = kv.detach()
+            x = q.mul(kv)          # T B head N C//h
+            if self.dvs:
+                x = self.pool(x)
+            if hook is not None:
+                hook[self._get_name() + str(self.layer) + "_x_after_qkv"] = x.detach()
+
+            x = x.transpose(3, 4).reshape(T, B, C, H, W).contiguous()   # T B C H W
             
-        #     q_conv_out = torch.stack(tmp_x, dim=0)    # T B C H W
-        # else:
-        q_conv_out = self.q_lif(q_conv_out)
+            x = (
+                self.proj_bn(self.proj_conv(x.flatten(0, 1)))
+                .reshape(T, B, C, H, W)
+                .contiguous()
+            )
 
-        if hook is not None:
-            hook[self._get_name() + str(self.layer) + "_q_lif"] = q_conv_out.detach()
-        q = (
-            q_conv_out.flatten(3)
-            .transpose(-1, -2)
-            .reshape(T, B, N, self.num_heads, C // self.num_heads)
-            .permute(0, 1, 3, 2, 4)
-            .contiguous()
-        )
+            x = x + identity
+            return x, v, hook
+        elif isinstance(x, tuple):
+            x_q, x_k, x_v, x_r = x
+            T, B, C, H, W = x_q.shape
+            identity = x_r
+            N = H * W
+            x_cat_qkv = torch.cat([x_q, x_k, x_v], dim=1)   # [T, 3B, C, H, W]
+            x_cat_qkv = self.shortcut_lif(x_cat_qkv)
+            spike_x_q, spike_x_k, spike_x_v = torch.chunk(x_cat_qkv, chunks=3, dim=1)   # [T, B, C, H, W]
+            if hook is not None:
+                hook[self._get_name() + str(self.layer) + "_first_lif"] = x.detach()
 
-        k_conv_out = self.k_conv(x_for_qkv)
-        k_conv_out = self.k_bn(k_conv_out).reshape(T, B, C, H, W).contiguous()
-        # changed on 2025-04-27
-        # if self.lif_recurrent_state is not None and self.lif_recurrent_state[2] == "1":
-        #     tmp_x = []
-        #     for t in range(T):
-        #         if t == 0:
-        #             x_in = k_conv_out[t]    # B C H W
-        #         else:
-        #             x_in = k_conv_out[t] + x_out
-        #         x_out = self.k_lif(x_in.unsqueeze(0)).squeeze(0)   # B C H W
-        #         tmp_x.append(x_out)
-            
-        #     k_conv_out = torch.stack(tmp_x, dim=0)    # T B C H W
-        # else:
-        k_conv_out = self.k_lif(k_conv_out)
+            q_conv_out = self.q_conv(spike_x_q.flatten(0, 1))
+            q_conv_out = self.q_bn(q_conv_out).reshape(T, B, C, H, W).contiguous()
+            q_conv_out = self.q_lif(q_conv_out)
 
-        if self.dvs:
-            k_conv_out = self.pool(k_conv_out)
-        if hook is not None:
-            hook[self._get_name() + str(self.layer) + "_k_lif"] = k_conv_out.detach()
-        k = (
-            k_conv_out.flatten(3)
-            .transpose(-1, -2)
-            .reshape(T, B, N, self.num_heads, C // self.num_heads)
-            .permute(0, 1, 3, 2, 4)
-            .contiguous()
-        )
+            if hook is not None:
+                hook[self._get_name() + str(self.layer) + "_q_lif"] = q_conv_out.detach()
+            q = (
+                q_conv_out.flatten(3)
+                .transpose(-1, -2)
+                .reshape(T, B, N, self.num_heads, C // self.num_heads)
+                .permute(0, 1, 3, 2, 4)
+                .contiguous()
+            )
 
-        v_conv_out = self.v_conv(x_for_qkv)
-        v_conv_out = self.v_bn(v_conv_out).reshape(T, B, C, H, W).contiguous()
-        # changed on 2025-04-27
-        # if self.lif_recurrent_state is not None and self.lif_recurrent_state[3] == "1":
-        #     tmp_x = []
-        #     for t in range(T):
-        #         if t == 0:
-        #             x_in = v_conv_out[t]    # B C H W
-        #         else:
-        #             x_in = v_conv_out[t] + x_out
-        #         x_out = self.v_lif(x_in.unsqueeze(0)).squeeze(0)   # B C H W
-        #         tmp_x.append(x_out)
-            
-        #     v_conv_out = torch.stack(tmp_x, dim=0)    # T B C H W
-        # else:
-        v_conv_out = self.v_lif(v_conv_out)
+            k_conv_out = self.k_conv(spike_x_k.flatten(0, 1))
+            k_conv_out = self.k_bn(k_conv_out).reshape(T, B, C, H, W).contiguous()
+            k_conv_out = self.k_lif(k_conv_out)
+            if self.dvs:
+                k_conv_out = self.pool(k_conv_out)
+            if hook is not None:
+                hook[self._get_name() + str(self.layer) + "_k_lif"] = k_conv_out.detach()
+            k = (
+                k_conv_out.flatten(3)
+                .transpose(-1, -2)
+                .reshape(T, B, N, self.num_heads, C // self.num_heads)
+                .permute(0, 1, 3, 2, 4)
+                .contiguous()
+            )
 
-        if self.dvs:
-            v_conv_out = self.pool(v_conv_out)
-        if hook is not None:
-            hook[self._get_name() + str(self.layer) + "_v_lif"] = v_conv_out.detach()
-        v = (
-            v_conv_out.flatten(3)
-            .transpose(-1, -2)
-            .reshape(T, B, N, self.num_heads, C // self.num_heads)
-            .permute(0, 1, 3, 2, 4)
-            .contiguous()
-        )  # T B head N C//h
+            v_conv_out = self.v_conv(spike_x_v.flatten(0, 1))
+            v_conv_out = self.v_bn(v_conv_out).reshape(T, B, C, H, W).contiguous()
+            v_conv_out = self.v_lif(v_conv_out)
 
-        kv = k.mul(v)
-        if hook is not None:
-            hook[self._get_name() + str(self.layer) + "_kv_before"] = kv
-        if self.dvs:
-            kv = self.pool(kv)
-        kv = kv.sum(dim=-2, keepdim=True)           # T B head 1 C//h
-        # changed on 2025-04-27
-        # if self.lif_recurrent_state is not None and self.lif_recurrent_state[4] == "1":
-        #     tmp_x = []
-        #     for t in range(T):
-        #         if t == 0:
-        #             x_in = kv[t]    # B head 1 C//h
-        #         else:
-        #             x_in = kv[t] + x_out
-        #         x_out = self.talking_heads_lif(x_in.unsqueeze(0)).squeeze(0)   # B head 1 C//h
-        #         tmp_x.append(x_out)
-            
-        #     kv = torch.stack(tmp_x, dim=0)    # T B head 1 C//h
-        # else:
-        kv = self.talking_heads_lif(kv)
+            if self.dvs:
+                v_conv_out = self.pool(v_conv_out)
+            if hook is not None:
+                hook[self._get_name() + str(self.layer) + "_v_lif"] = v_conv_out.detach()
+            v = (
+                v_conv_out.flatten(3)
+                .transpose(-1, -2)
+                .reshape(T, B, N, self.num_heads, C // self.num_heads)
+                .permute(0, 1, 3, 2, 4)
+                .contiguous()
+            )  # T B head N C//h
 
-        if hook is not None:
-            hook[self._get_name() + str(self.layer) + "_kv"] = kv.detach()
-        x = q.mul(kv)          # T B head N C//h
-        if self.dvs:
-            x = self.pool(x)
-        if hook is not None:
-            hook[self._get_name() + str(self.layer) + "_x_after_qkv"] = x.detach()
+            kv = k.mul(v)
+            if hook is not None:
+                hook[self._get_name() + str(self.layer) + "_kv_before"] = kv
+            if self.dvs:
+                kv = self.pool(kv)
+            kv = kv.sum(dim=-2, keepdim=True)
+            kv = self.talking_heads_lif(kv)
+            if hook is not None:
+                hook[self._get_name() + str(self.layer) + "_kv"] = kv.detach()
+            x = q.mul(kv)
+            if self.dvs:
+                x = self.pool(x)
+            if hook is not None:
+                hook[self._get_name() + str(self.layer) + "_x_after_qkv"] = x.detach()
 
-        x = x.transpose(3, 4).reshape(T, B, C, H, W).contiguous()   # T B C H W
-        
-        x = (
-            self.proj_bn(self.proj_conv(x.flatten(0, 1)))
-            .reshape(T, B, C, H, W)
-            .contiguous()
-        )
+            x = x.transpose(3, 4).reshape(T, B, C, H, W).contiguous()
+            x = (
+                self.proj_bn(self.proj_conv(x.flatten(0, 1)))
+                .reshape(T, B, C, H, W)
+                .contiguous()
+            )
 
-        x = x + identity
-        return x, v, hook
+            x = x + identity
+            return x, v, hook
 
 
 class MS_Block_Conv(nn.Module):

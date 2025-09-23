@@ -9,7 +9,45 @@ from spikingjelly.clock_driven.neuron import (
     MultiStepLIFNode,
     MultiStepParametricLIFNode,
 )
+from torch import Tensor
+from einops import rearrange
 from module import *
+
+# changed on 2025-08-15, 计算QKAttention中的动态连接
+class DynamiceResidualBlock(nn.Module):
+    def __init__(self, lidx: int, dim: int, C: int, last_layer: bool=False, expand_last: bool=False, round64: bool=True) -> None:
+        super().__init__()
+        self.C = C if not last_layer else 1      # qkvr
+        self.lidx = lidx
+        self.dim = dim
+        l = lidx + 2
+        hid_dim, out_dim = l * self.C, l * self.C
+        if last_layer and expand_last: hid_dim *= 4  
+        if round64: hid_dim = (hid_dim// 64 +1) * 64 
+        self.w1 = nn.Conv1d(self.dim, hid_dim, kernel_size=1, stride=1, bias=False)
+        self.w1_bn = nn.BatchNorm1d(hid_dim)
+        self.act_lif = MultiStepLIFNode(tau=2.0, detach_reset=True, backend='cupy')
+        self.w2 = nn.Conv1d(hid_dim, out_dim, kernel_size=1, stride=1, bias=False)
+        self.w2_bn = nn.BatchNorm1d(out_dim)
+    
+    def forward(self, x: Tensor) -> Tensor:
+
+        T, B, C, H, W = x.shape
+        x = x.flatten(3) # T B C N
+        _, _, _, N = x.shape
+        x_for_qkvr = x.flatten(0, 1) # (T B) C N
+
+        x_for_qkvr = self.w1_bn(self.w1(x_for_qkvr)).reshape(T, B, -1, N)
+        x_for_qkvr = self.act_lif(x_for_qkvr).flatten(0, 1) # (T B) C N
+        x_for_qkvr = self.w2_bn(self.w2(x_for_qkvr)).reshape(T, B, -1, H, W) # T B (lidx+2)4 H W
+
+        dw = rearrange(x_for_qkvr, 'T B (C L) H W -> C T B L H W', C=self.C)
+        return dw   # 4 T B lidx+2 H W
+    
+    def layer_mix(self, hids, dw)-> Tensor:
+        # dw [4 T B lidx+2 H W]  hids [T B C H W]
+        x = tuple([sum(dw[cidx,:,:,j,None,:,:] * hids[j] for j in range(self.lidx+2)) for cidx in range(self.C)])
+        return x    # [T B C H W] 共四组
 
 
 class SpikeDrivenTransformer(nn.Module):
@@ -48,6 +86,7 @@ class SpikeDrivenTransformer(nn.Module):
         # lif_recurrent_state=None,       # changed on 2025-04-27
         temporal_conv_type=None,        # changed on 2025-09-22
         maxpooling_lif_change_order=False,
+        dense_connection=False,
     ):
         super().__init__()
         self.num_classes = num_classes
@@ -56,6 +95,7 @@ class SpikeDrivenTransformer(nn.Module):
         self.T = T
         self.TET = TET
         self.dvs = dvs_mode
+        self.dense_connection = dense_connection
 
         assert pe_type in ("stf_1", "stf_2"), f"Invalid pe_type: {pe_type}, must be 'stf_1' or 'stf_2'"
         assert temporal_conv_type in ("conv1d", "conv2d"), f"Invalid temporal_conv_type: {temporal_conv_type}, must be 'conv1d' or 'conv2d'"
@@ -146,6 +186,12 @@ class SpikeDrivenTransformer(nn.Module):
             ]
         )
 
+        if self.dense_connection:
+            # MS_Block_Conv qkvr C=4
+            blocks_da = nn.ModuleList([DynamiceResidualBlock(lidx=lidx, dim=embed_dims, C=4, 
+                last_layer=lidx==depths-1, expand_last=True, round64=True) for lidx in range(depths)])
+            blocks_bs = nn.ParameterList([nn.Parameter(data=torch.randn(4 if lidx != depths-1 else 1, lidx+2)) for lidx in range(depths)])
+
         # if self.lif_recurrent_state is not None:
         #     for i in range(depths):
         #         print(f"MS_Block_Conv Block{i}: LIF index: {', '.join(map(str, range(lif_recurrent_state_index+(i)*7, lif_recurrent_state_index+(i+1)*7)))}")
@@ -162,6 +208,9 @@ class SpikeDrivenTransformer(nn.Module):
 
         setattr(self, f"patch_embed", patch_embed)
         setattr(self, f"block", blocks)
+        if self.dense_connection:
+            setattr(self, f"block_da", blocks_da)
+            setattr(self, f"block_bs", blocks_bs)
 
         # classification head
         if spike_mode in ["lif", "alif", "blif"]:
@@ -184,26 +233,42 @@ class SpikeDrivenTransformer(nn.Module):
             nn.init.constant_(m.bias, 0)
             nn.init.constant_(m.weight, 1.0)
 
-    def forward_features(self, x, hook=None):
+    def forward_features(self, x, use_dense_connection=False, hook=None):
         block = getattr(self, f"block")
         patch_embed = getattr(self, f"patch_embed")
+        if self.dense_connection and use_dense_connection:
+            block_da = getattr(self, f"block_da")
+            block_bs = getattr(self, f"block_bs")
+
         # changed on 2025-0-24
         # if self.diversity_loss:
         #     x, _, hook, diversity_coding = patch_embed(x, hook=hook)
         # else:
         x, _, hook = patch_embed(x, hook=hook)
-        
+
+        if self.dense_connection and use_dense_connection:
+            hiddens = [x] # [T B C H W]
+            idx = 0
+
         for blk in block:
             x, _, hook = blk(x, hook=hook)
+            if self.dense_connection and use_dense_connection:
+                hiddens.append(x)       # T B C H W
+                dw = block_da[idx](x)   # 4 T B lidx+2 H W
+                dw = dw + block_bs[idx][:, None, None, :, None, None]  # 4 T B lidx+2 H W
+                x = block_da[idx].layer_mix(hiddens, dw)
+                idx += 1
 
+        if self.dense_connection and use_dense_connection:
+            x = x[0]
+        
         x = x.flatten(3).mean(3)
-
         # if self.diversity_loss:
         #     return x, hook, diversity_coding
         # else:
         return x, hook
 
-    def forward(self, x, hook=None):
+    def forward(self, x, use_dense_connection=False, hook=None):
         if len(x.shape) < 5:
             x = (x.unsqueeze(0)).repeat(self.T, 1, 1, 1, 1)
         else:
@@ -212,7 +277,7 @@ class SpikeDrivenTransformer(nn.Module):
         # if self.diversity_loss:
         #     x, hook, diversity_coding = self.forward_features(x, hook=hook)
         # else:
-        x, hook = self.forward_features(x, hook=hook)
+        x, hook = self.forward_features(x, use_dense_connection=use_dense_connection, hook=hook)
         # changed on 2025-04-27
         # if self.lif_recurrent_state is not None and self.lif_recurrent_state[self.head_lif_recurrent_state_index] == "1":
         #     tmp_x = []
@@ -250,4 +315,5 @@ def sdt(**kwargs):
     print(f"pe_type: {model.pe_type}")
     print(f"temporal_conv_type: {model.temporal_conv_type}")
     print(f"maxpooling_lif_change_order: {model.maxpooling_lif_change_order}")
+    print(f"dense_connection: {model.dense_connection}")
     return model
