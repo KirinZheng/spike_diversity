@@ -1,0 +1,91 @@
+
+## QKFormer_10_768 ETF T=4 224
+CUDA_VISIBLE_DEVICES=0 torchrun --nproc_per_node=1 --master_port 29501 /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/train.py \
+    --output_dir /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/output/tmp \
+    --log_dir /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/output/tmp \
+    --data_path /zhengzeqi/dataset/imagenet \
+    --model  QKFormer_10_768 \
+    --time_step 4 \
+    --batch_size 32 \
+    --accum_iter 1 \
+    --input_size 224 \
+    --recurrent_coding \
+    --pe_type 3d_pe_arch_4 \
+    --eval \
+    --resume /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/output/10_768_T_4_224_3d_pe_arch_4_finetune/checkpoint-23.pth 
+
+
+
+## QKFormer_10_768 ETF T=4 288
+CUDA_VISIBLE_DEVICES=0 torchrun --nproc_per_node=1 --master_port 29501 /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/train.py \
+    --output_dir /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/output/tmp \
+    --log_dir /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/output/tmp \
+    --data_path /zhengzeqi/dataset/imagenet \
+    --model  QKFormer_10_768 \
+    --time_step 4 \
+    --batch_size 32 \
+    --accum_iter 1 \
+    --input_size 288 \
+    --recurrent_coding \
+    --pe_type 3d_pe_arch_4 \
+    --eval \
+    --resume /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/output/10_768_T_4_288_3d_pe_arch_4_resume/checkpoint-4.pth
+
+
+
+
+
+## QKFormer_10_768 ETF T=4 384
+CUDA_VISIBLE_DEVICES=0 torchrun --nproc_per_node=1 --master_port 29501 /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/train.py \
+    --output_dir /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/output/tmp \
+    --log_dir /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/output/tmp \
+    --data_path /zhengzeqi/dataset/imagenet \
+    --model  QKFormer_10_768 \
+    --time_step 4 \
+    --batch_size 32 \
+    --accum_iter 1 \
+    --input_size 384 \
+    --recurrent_coding \
+    --pe_type 3d_pe_arch_4 \
+    --eval \
+    --resume /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/output/10_768_T_4_384_3d_pe_arch_4_resume/checkpoint-8.pth
+
+
+
+
+
+## inference time ours imagenet
+CUDA_VISIBLE_DEVICES=0 torchrun --nproc_per_node=1 --master_port 29501 /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/train.py \
+    --output_dir /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/output/tmp \
+    --log_dir /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/output/tmp \
+    --data_path /zhengzeqi/dataset/imagenet \
+    --model  QKFormer_10_768 \
+    --time_step 4 \
+    --batch_size 96 \
+    --accum_iter 1 \
+    --input_size 224 \
+    --recurrent_coding \
+    --pe_type 3d_pe_arch_4 \
+    --eval \
+    --resume /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/output/10_768_T_4_224_3d_pe_arch_4_finetune/checkpoint-23.pth 
+
+
+
+## inference time ours baseline
+CUDA_VISIBLE_DEVICES=0 torchrun --nproc_per_node=1 --master_port 29501 /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/train.py \
+    --output_dir /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/output/tmp \
+    --log_dir /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/output/tmp \
+    --data_path /zhengzeqi/dataset/imagenet \
+    --model  QKFormer_10_768 \
+    --time_step 4 \
+    --batch_size 96 \
+    --accum_iter 1 \
+    --input_size 224 \
+    --eval \
+    --resume /zhengzeqi/code/zhengzeqi/QKFormer_original/imagenet_1K_finetune/official_weights/T4_224offical.pth 
+
+
+
+
+
+

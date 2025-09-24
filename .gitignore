@@ -1,3 +1,5 @@
 **/outputs/
 **/output/
 **/__pycache__/
+**/official_weights/
+**/official_weight/

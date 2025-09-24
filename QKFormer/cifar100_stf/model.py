@@ -643,9 +643,7 @@ class spiking_transformer(nn.Module):
 
 
                 for rep_idx in range(1, self.n_repeat + 1):
-                    print(rep_idx)
                     for i in range(self.increate_T_every):
-                        print(i)
                         x = stage3[(rep_idx - 1) * self.increate_T_every  + i](x)
                     hiddens[rep_idx % self.dilation_factor] = apply_inplace_set(
                         hiddens[rep_idx % self.dilation_factor], 
