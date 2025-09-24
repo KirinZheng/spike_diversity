@@ -179,6 +179,8 @@ def get_args_parser():
     parser.add_argument('--recurrent_lif', type=str, default=None, help="lif, plif, or None")
     parser.add_argument('--pe_type', default=None, help="position embedding methods")
 
+    parser.add_argument('--temporal_conv_type', default=None, help="temporal feedback conv type")
+
     #changed on 2025-05-06
     # 是否启用IMP神经元
     parser.add_argument('--use_imp_lif',  action='store_true', default=False,
@@ -260,11 +262,12 @@ def main(args):
     # changed on 2025-04-29
     if args.finetune:
         model = qkformer.__dict__[args.model](T=args.time_step,finetune = args.finetune, recurrent_coding=args.recurrent_coding, 
-                                            recurrent_lif=args.recurrent_lif, pe_type=args.pe_type, input_H=args.input_size, 
-                                            input_W=args.input_size, use_imp_lif=args.use_imp_lif)
+                                            recurrent_lif=args.recurrent_lif, pe_type=args.pe_type, temporal_conv_type=args.temporal_conv_type,
+                                            input_H=args.input_size, input_W=args.input_size, use_imp_lif=args.use_imp_lif)
     else:
         model = qkformer.__dict__[args.model](T=args.time_step, recurrent_coding=args.recurrent_coding, recurrent_lif=args.recurrent_lif, 
-                                            pe_type=args.pe_type, input_H=args.input_size, input_W=args.input_size, use_imp_lif=args.use_imp_lif)
+                                            pe_type=args.pe_type, temporal_conv_type=args.temporal_conv_type,
+                                            input_H=args.input_size, input_W=args.input_size, use_imp_lif=args.use_imp_lif)
 
 
     # if args.finetune and not args.eval:

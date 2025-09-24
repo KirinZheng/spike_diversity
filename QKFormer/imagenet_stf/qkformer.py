@@ -323,7 +323,7 @@ class SpikingTransformer(nn.Module):
 class PatchEmbedInit(nn.Module):
     def __init__(self, img_size_h=128, img_size_w=128, patch_size=4, in_channels=2, embed_dims=256,
                  recurrent_coding=False, recurrent_lif=None, pe_type=None, time_step=None,
-                 use_imp_lif=False):
+                 use_imp_lif=False, temporal_conv_type=None):
         super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.dtype = torch.float32  # 默认为 float32，后续可能会使用混合精度
@@ -366,38 +366,29 @@ class PatchEmbedInit(nn.Module):
         self.recurrent_coding = recurrent_coding
         self.recurrent_lif = recurrent_lif
         self.pe_type = pe_type
+        self.temporal_conv_type = temporal_conv_type
 
-        # changed on 2025-04-17
-        if self.pe_type is not None:
-            if self.pe_type == "3d_pe_arch_1" or self.pe_type == "3d_pe_arch_4":
-                pos_embed = get_3d_sincos_pos_embed(embed_dim=self.embed_dims // 2, spatial_size=self.image_size[0] // 2,
-                                                    temporal_size=time_step, output_type="pt",
-                                                    )  # T HW D
 
-                T_pe, HW_pe, D_pe = pos_embed.shape
-                # pos_embed = pos_embed.to(x.dtype)
-                pos_embed = pos_embed.reshape(T_pe, int(math.sqrt(HW_pe)), int(math.sqrt(HW_pe)), D_pe).unsqueeze(dim=1).permute(0, 1, 4, 2, 3).contiguous()  # T 1 C H W
-                self.learnable_pos_embed = nn.Parameter(pos_embed.to(self.device, self.dtype))
-
-            elif self.pe_type == "3d_pe_arch_2" or self.pe_type == "3d_pe_arch_3":
-                pos_embed = get_sinusoid_spatial_temporal_encoding(height=img_size_h, width=img_size_w,
-                                                                   time_step=time_step, d_hid=in_channels)
-                
-                self.learnable_pos_embed = nn.Parameter(pos_embed.to(self.device, self.dtype))  # T 1 C H W
-            
-
+        # changed on 2025-09-24
         if recurrent_coding:
-            if self.pe_type == "3d_pe_arch_1" or self.pe_type == "3d_pe_arch_2":
-                # self.proj_temporal_conv = nn.Conv2d(embed_dims // 2, in_channels, kernel_size=3, stride=1, padding=1, bias=False)
-                # up_sampling
-                self.proj_temporal_conv = nn.ConvTranspose2d(in_channels=embed_dims // 2, 
-                                                             out_channels=in_channels, kernel_size=2,    # 核大小
-                                                             stride=2, padding=0, output_padding=0)  # 控制输出尺寸精准匹配
-                self.proj_temporal_bn = nn.BatchNorm2d(in_channels)
-            elif self.pe_type == "3d_pe_arch_3" or self.pe_type == "3d_pe_arch_4" or self.pe_type == "3d_pe_arch_5":
-                self.proj_temporal_conv = nn.Conv2d(embed_dims // 2, embed_dims // 2, kernel_size=3, stride=1, padding=1, bias=False)
-                self.proj_temporal_bn = nn.BatchNorm2d(embed_dims // 2)
-            
+            if self.pe_type == "stf_1":
+                if self.temporal_conv_type == "conv1d":
+                    self.proj_temporal_conv = nn.Conv1d(embed_dims // 2, in_channels, kernel_size=1, stride=1, bias=False)
+                    self.proj_temporal_bn = nn.BatchNorm1d(in_channels)
+                elif self.temporal_conv_type == "conv2d":
+                    self.proj_temporal_conv = nn.ConvTranspose2d(in_channels=embed_dims // 2, 
+                                                out_channels=in_channels, kernel_size=2,    # 核大小
+                                                stride=2, padding=0, output_padding=0)  # 控制输出尺寸精准匹配
+                    self.proj_temporal_bn = nn.BatchNorm2d(in_channels)
+
+            elif self.pe_type == "stf_2":
+                if self.temporal_conv_type == "conv1d":
+                    self.proj_temporal_conv = nn.Conv1d(embed_dims // 2, embed_dims // 2, kernel_size=1, stride=1, bias=False)
+                    self.proj_temporal_bn = nn.BatchNorm1d(embed_dims // 2)
+                elif self.temporal_conv_type == "conv2d":
+                    self.proj_temporal_conv = nn.Conv2d(embed_dims // 2, embed_dims // 2, kernel_size=3, stride=1, padding=1, bias=False)
+                    self.proj_temporal_bn = nn.BatchNorm2d(embed_dims // 2)
+
             if recurrent_lif is not None:
                 if recurrent_lif == 'lif':
                     self.proj_temporal_lif = MultiStepLIFNode(tau=2.0, detach_reset=True, backend='cupy')
@@ -408,52 +399,36 @@ class PatchEmbedInit(nn.Module):
     def forward(self, x):
         T, B, C, H, W = x.shape
 
-        if not self.recurrent_coding:
-            x = self.proj_conv(x.flatten(0, 1)) # TB C H W
-            x = self.proj_bn(x) # TB C H W
-            x = self.proj_maxpool(x).reshape(T, B, -1, H//2, W//2).contiguous()
-            x = self.proj_lif(x).flatten(0, 1)  # TB C H W
-        else:
-            # changed on 2025-04-17
-            if self.pe_type == "3d_pe_arch_2" or self.pe_type == "3d_pe_arch_3":
-                x = x + self.learnable_pos_embed
-
+        if self.recurrent_coding:
             t_x = []
 
-            if self.pe_type == "3d_pe_arch_1" or self.pe_type == "3d_pe_arch_2":
+            if self.pe_type == "stf_1":
                 for i in range(T):
                     if i == 0:
                         x_in = x[i] # B C H W
                     else:
                         x_in = x[i] + x_out
-                        # x_in = x_out
+                    
                     x_out = self.proj_conv(x_in)    # B C H W
                     x_out = self.proj_bn(x_out)     # B C H W
                     x_out = self.proj_maxpool(x_out)    # B C H W
 
-                    # add 3d_pe_arch_1
-                    if self.pe_type == "3d_pe_arch_1":
-                        # print(x_out.shape, self.learnable_pos_embed[i].shape)
-                        x_out = x_out + self.learnable_pos_embed[i] # B C H W
-                    
-                
                     x_out = self.proj_lif(x_out.unsqueeze(0)).squeeze(0)  # B C H W
-                
+
                     tmp = x_out
-                    
+
                     x_out = self.proj_temporal_conv(x_out)    # B C H W
-                    
                     x_out = self.proj_temporal_bn(x_out)     # B C H W
+
                     if self.recurrent_lif is not None:
                         x_out = self.proj_temporal_lif(x_out.unsqueeze(0)).squeeze(0) # B C H W
                 
                     t_x.append(tmp)
-            elif self.pe_type == "3d_pe_arch_3" or self.pe_type == "3d_pe_arch_4" or self.pe_type == "3d_pe_arch_5":
+                            
+            elif self.pe_type == "stf_2":
                 x = self.proj_conv(x.flatten(0, 1)) # TB C H W
                 x = self.proj_bn(x) # TB C H W
                 x = self.proj_maxpool(x).reshape(T, B, -1, H//2, W//2).contiguous()
-                if self.pe_type == "3d_pe_arch_4":
-                    x = x + self.learnable_pos_embed # T B C H W
 
                 for i in range(T):
                     if i == 0:
@@ -465,11 +440,7 @@ class PatchEmbedInit(nn.Module):
                     x_out = self.proj_lif(x_in.unsqueeze(0)).squeeze(0)  # B C H W
                 
                     tmp = x_out
-                    # print(x_out.shape)
                     x_out = self.proj_temporal_conv(x_out)    # B C H W
-                    # print(x_out.shape)
-                    # assert False
-                    
                     x_out = self.proj_temporal_bn(x_out)     # B C H W
                     if self.recurrent_lif is not None:
                         x_out = self.proj_temporal_lif(x_out.unsqueeze(0)).squeeze(0) # B C H W
@@ -477,6 +448,12 @@ class PatchEmbedInit(nn.Module):
                     t_x.append(tmp)
 
             x = torch.stack(t_x, dim=0).flatten(0, 1).contiguous() # TB C H W
+        
+        else:
+            x = self.proj_conv(x.flatten(0, 1)) # TB C H W
+            x = self.proj_bn(x) # TB C H W
+            x = self.proj_maxpool(x).reshape(T, B, -1, H//2, W//2).contiguous()
+            x = self.proj_lif(x).flatten(0, 1)  # TB C H W
 
         x_feat = x
         x = self.proj1_conv(x)
@@ -555,19 +532,24 @@ class PatchEmbeddingStage(nn.Module):
 # changed on 2025-04-29
 class hierarchical_spiking_transformer(nn.Module):
     def __init__(self,
-                 T=4, recurrent_coding=False, recurrent_lif=None, pe_type=None, 
+                 T=4, recurrent_coding=False, recurrent_lif=None, pe_type=None, temporal_conv_type=None,
                  img_size_h=128, img_size_w=128, use_imp_lif=False, patch_size=16, in_channels=2, num_classes=11,
                  embed_dims=[64, 128, 256], num_heads=[1, 2, 4], mlp_ratios=[4, 4, 4], qkv_bias=False, qk_scale=None,
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0., norm_layer=nn.LayerNorm,
                  depths=[6, 8, 6], sr_ratios=[8, 4, 2],
                  ):
         super().__init__()
+
+        assert pe_type in ("stf_1", "stf_2"), f"Invalid pe_type: {pe_type}, must be 'stf_1' or 'stf_2'"
+        assert temporal_conv_type in ("conv1d", "conv2d"), f"Invalid temporal_conv_type: {temporal_conv_type}, must be 'conv1d' or 'conv2d'"
+
         self.num_classes = num_classes
         self.depths = depths
         self.T = T
         self.recurrent_coding = recurrent_coding
         self.recurrent_lif = recurrent_lif
         self.pe_type = pe_type
+        self.temporal_conv_type = temporal_conv_type
         self.use_imp_lif = use_imp_lif
 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, depths)]  # stochastic depth decay rule
@@ -578,7 +560,7 @@ class hierarchical_spiking_transformer(nn.Module):
                                  in_channels=in_channels,
                                  embed_dims=embed_dims // 4,
                                  recurrent_coding=recurrent_coding, recurrent_lif=recurrent_lif, pe_type=pe_type,
-                                 time_step=T, use_imp_lif=use_imp_lif
+                                 time_step=T, use_imp_lif=use_imp_lif, temporal_conv_type=temporal_conv_type
                                  )
 
         stage1 = nn.ModuleList([TokenSpikingTransformer(
@@ -695,11 +677,11 @@ def QKFormer_10_512(T=1, **kwargs):
     return model
 
 # changed on 2025-04-29
-def QKFormer_10_768(T=1, recurrent_coding=False, recurrent_lif=None, pe_type=None, finetune = None, 
+def QKFormer_10_768(T=1, recurrent_coding=False, recurrent_lif=None, pe_type=None, temporal_conv_type=None, finetune = None, 
                     input_H=None, input_W=None, use_imp_lif=False, **kwargs):
     model = hierarchical_spiking_transformer(
         T=T, recurrent_coding=recurrent_coding, 
-        recurrent_lif=recurrent_lif, pe_type=pe_type,
+        recurrent_lif=recurrent_lif, pe_type=pe_type, temporal_conv_type=temporal_conv_type,
         img_size_h=input_H, img_size_w=input_W, use_imp_lif=use_imp_lif, 
         patch_size=16, embed_dims=768, num_heads=12, mlp_ratios=4,
         in_channels=3, num_classes=1000, qkv_bias=False,
@@ -710,6 +692,7 @@ def QKFormer_10_768(T=1, recurrent_coding=False, recurrent_lif=None, pe_type=Non
     print(f"using recurrent LIF: {model.recurrent_lif}")
     print(f"postion embedding methods: {model.pe_type}")
     print(f"using imp lif: {model.use_imp_lif}")
+    print(f"temporal_conv_type: {model.temporal_conv_type}")
 
     if finetune is not None:
         
@@ -746,8 +729,11 @@ if __name__ == '__main__':
     H = 128
     W = 128
     x = torch.randn(2, 3, 224, 224).cuda()
-    model = QKFormer_10_768(T = 4).cuda()
+    model = QKFormer_10_768(T = 4, recurrent_coding=True, recurrent_lif=None, pe_type="stf_2", temporal_conv_type="conv2d",
+                            input_H=224, input_W=224, use_imp_lif=False).cuda()
 
     model.eval()
-    from torchinfo import summary
-    summary(model, input_size=(1, 3, 224, 224))
+    y = model(x)
+    print(y.shape)
+    # from torchinfo import summary
+    # summary(model, input_size=(1, 3, 224, 224))
