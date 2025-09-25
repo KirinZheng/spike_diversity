@@ -633,6 +633,14 @@ def main():
             f.write(args_text)
 
     try:
+        # import swanlab
+        #########swan lab###########
+        # 创建一个SwanLab项目
+        # swanlab.init(
+        #     # 设置项目名
+        #     project="cifar_100_stf_2_conv2d_dense_easy_dense_start_epoch_0",
+        # )
+
         for epoch in range(start_epoch, num_epochs):
             if args.distributed and hasattr(loader_train.sampler, 'set_epoch'):
                 loader_train.sampler.set_epoch(epoch)
@@ -641,6 +649,10 @@ def main():
                 epoch, model, loader_train, optimizer, train_loss_fn, args,
                 lr_scheduler=lr_scheduler, saver=saver, output_dir=output_dir,
                 amp_autocast=amp_autocast, loss_scaler=loss_scaler, model_ema=model_ema, mixup_fn=mixup_fn)
+            
+            # swanlab.log({"weight.0.0":model.weights[0].weight[0, 0].detach().float().cpu().item(), "weight.0.1":model.weights[0].weight[0, 1].detach().float().cpu().item(), 
+            #              "weight.1.0":model.weights[1].weight[0, 0].detach().float().cpu().item(), "weight.1.1":model.weights[1].weight[0, 1].detach().float().cpu().item(), 
+            #              "weight.1.2":model.weights[1].weight[0, 2].detach().float().cpu().item()})
 
             if args.distributed and args.dist_bn in ('broadcast', 'reduce'):
                 if args.local_rank == 0:
@@ -672,6 +684,8 @@ def main():
                 save_metric = eval_metrics[eval_metric]
                 best_metric, best_epoch = saver.save_checkpoint(epoch, metric=save_metric)
                 _logger.info('*** Best metric: {0} (epoch {1})'.format(best_metric, best_epoch))
+
+        # swanlab.finish()
 
     except KeyboardInterrupt:
         pass

@@ -68,4 +68,4 @@ CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_projec
 --temporal_conv_type conv2d \
 --dense_easy_connection \
 --dense_connection_epoch 0 \
---experiment stf_2_conv2d_dense_easy_dense_epoch_start_0
+--experiment stf_2_conv2d_dense_easy_dense_epoch_start_0_changed

@@ -1715,6 +1715,22 @@ def main():
         exit(0)
 
     try:
+        # import swanlab
+        #########swan lab###########
+        # 创建一个SwanLab项目
+        # swanlab.init(
+        #     # 设置项目名
+        #     project="spike_driven_cifar_100_stf_2_conv2d_dense_easy_dense_start_epoch_0",
+        # )
+
+        def log_weights_elements(model):
+                metrics = {}
+                for i, mod in enumerate(model.weights):            # 假设是 nn.ModuleList / list
+                    w = mod.weight.detach().cpu().view(-1)         # 展平为一维
+                    for j, v in enumerate(w):
+                        metrics[f"weights.{i}.{j}"] = float(v.item())
+                # swanlab.log(metrics)
+
         for epoch in range(start_epoch, num_epochs):
             if args.distributed and hasattr(loader_train.sampler, "set_epoch"):
                 loader_train.sampler.set_epoch(epoch)
@@ -1738,6 +1754,8 @@ def main():
                 dvs_aug=train_dvs_aug,
                 dvs_trival_aug=train_dvs_trival_aug,
             )
+
+            # log_weights_elements(model)
 
             if args.distributed and args.dist_bn in ("broadcast", "reduce"):
                 if args.local_rank == 0:

@@ -556,6 +556,33 @@ class spiking_transformer(nn.Module):
                     for i in range(self.n_repeat)
                 ])
 
+        ### 手动赋值权重，并且不可学习
+        # if self.dense_easy_connection:
+        #     self.n_repeat = (depths - 2) // 1
+        #     self.dilation_factor = 1
+        #     self.increate_T_every = 1
+
+        #     fixed_values_list = [
+        #         [0.1, 1.0],   # 第一个 Linear 的固定权重
+        #         [0.1, 0.2, 1.0]         # 第二个 Linear 的固定权重
+        #         # 你可以根据 n_repeat 的数量继续添加
+        #     ]
+
+        #     self.weights = nn.ModuleList()
+        #     for i in range(self.n_repeat):
+        #         in_features = (i + 2 + self.dilation_factor - 1) // self.dilation_factor
+        #         linear = nn.Linear(in_features, 1, bias=False)
+
+        #         # 手动赋值固定权重
+        #         with torch.no_grad():
+        #             values = fixed_values_list[i]
+        #             linear.weight.copy_(torch.tensor([values], dtype=torch.float32))
+
+        #         # 冻结参数（不可学习）
+        #         linear.weight.requires_grad_(False)
+
+        #         self.weights.append(linear)
+
         setattr(self, f"patch_embed1", patch_embed1)
         setattr(self, f"patch_embed2", patch_embed2)
         setattr(self, f"patch_embed3", patch_embed3)
@@ -577,7 +604,7 @@ class spiking_transformer(nn.Module):
         if self.dense_easy_connection:
             for module in self.weights:
                 module.weight.data.zero_()
-                module.weight.data[:,0] = 1.
+                module.weight.data[:,-1] = 1.
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -613,6 +640,7 @@ class spiking_transformer(nn.Module):
             x = blk(x)
 
         x = patch_embed3(x)
+        patch_3_x = x
         if self.dense_connection:
             # changed on 2025-09-22
             if use_dense_connection:
@@ -654,6 +682,14 @@ class spiking_transformer(nn.Module):
                         rep_idx // self.dilation_factor, 
                         x,
                     )
+                    # print(type(hiddens[rep_idx % self.dilation_factor][1]))
+                    # print(hiddens[rep_idx % self.dilation_factor][1].shape)
+                    # print(torch.all(patch_3_x == hiddens[rep_idx % self.dilation_factor][1][0]))
+                    # print(torch.all(x == hiddens[rep_idx % self.dilation_factor][1][1]))
+                    # print(self.weights[rep_idx - 1].weight.view(-1))
+                    # print(self.weights[rep_idx+1 - 1].weight.view(-1))
+                    # assert False
+                    # print(patch_3_x==hiddens[rep_idx % self.dilation_factor][1])
                     x = torch.tensordot(self.weights[rep_idx - 1].weight.view(-1), 
                                         hiddens[rep_idx % self.dilation_factor][1], dims=1)
             else:

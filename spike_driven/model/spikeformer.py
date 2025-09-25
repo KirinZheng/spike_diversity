@@ -266,7 +266,7 @@ class SpikeDrivenTransformer(nn.Module):
         if self.dense_easy_connection:
             for module in self.weights:
                 module.weight.data.zero_()
-                module.weight.data[:,0] = 1.
+                module.weight.data[:,-1] = 1.
 
     def _init_weights(self, m):
         if isinstance(m, nn.Conv2d):

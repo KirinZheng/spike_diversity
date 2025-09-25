@@ -643,7 +643,7 @@ class Spikformer(nn.Module):
         if self.dense_easy_connection:
             for module in self.weights:
                 module.weight.data.zero_()
-                module.weight.data[:,0] = 1.
+                module.weight.data[:,-1] = 1.
 
     @torch.jit.ignore
     def _get_pos_embed(self, pos_embed, patch_embed, H, W):

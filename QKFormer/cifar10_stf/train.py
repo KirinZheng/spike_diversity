@@ -41,7 +41,6 @@ from timm.scheduler import create_scheduler
 from timm.utils import ApexScaler, NativeScaler
 
 
-
 try:
     from apex import amp
     from apex.parallel import DistributedDataParallel as ApexDDP
@@ -321,6 +320,9 @@ parser.add_argument('--dense_connection_epoch', type=int, default=100, metavar='
 ## changed on 2025-09-23
 parser.add_argument('--dense_easy_connection', action="store_true", default=False, help="just learnable weights")
 
+## changed on 2025-09-24
+# parser.add_argument('--dense_easy_factor', action="store_true", default=False, help="just learnable weights")
+
 
 def _parse_args():
     # Do we have a config file to parse?
@@ -406,7 +408,7 @@ def main():
         temporal_conv_type=args.temporal_conv_type,
         dense_connection=args.dense_connection,
         dense_easy_connection=args.dense_easy_connection,
-   )
+    )
 
 
     print("Creating model")
@@ -634,6 +636,14 @@ def main():
             f.write(args_text)
 
     try:
+        # import swanlab
+        #########swan lab###########
+        # 创建一个SwanLab项目
+        # swanlab.init(
+        #     # 设置项目名
+        #     project="cifar_10_stf_2_conv2d_dense_easy_dense_start_epoch_0",
+        # )
+
         for epoch in range(start_epoch, num_epochs):
             if args.distributed and hasattr(loader_train.sampler, 'set_epoch'):
                 loader_train.sampler.set_epoch(epoch)
@@ -642,6 +652,10 @@ def main():
                 epoch, model, loader_train, optimizer, train_loss_fn, args,
                 lr_scheduler=lr_scheduler, saver=saver, output_dir=output_dir,
                 amp_autocast=amp_autocast, loss_scaler=loss_scaler, model_ema=model_ema, mixup_fn=mixup_fn)
+
+            # swanlab.log({"weight.0.0":model.weights[0].weight[0, 0].detach().float().cpu().item(), "weight.0.1":model.weights[0].weight[0, 1].detach().float().cpu().item(), 
+            #              "weight.1.0":model.weights[1].weight[0, 0].detach().float().cpu().item(), "weight.1.1":model.weights[1].weight[0, 1].detach().float().cpu().item(), 
+            #              "weight.1.2":model.weights[1].weight[0, 2].detach().float().cpu().item()})
 
             if args.distributed and args.dist_bn in ('broadcast', 'reduce'):
                 if args.local_rank == 0:
@@ -673,6 +687,8 @@ def main():
                 save_metric = eval_metrics[eval_metric]
                 best_metric, best_epoch = saver.save_checkpoint(epoch, metric=save_metric)
                 _logger.info('*** Best metric: {0} (epoch {1})'.format(best_metric, best_epoch))
+
+        # swanlab.finish()
 
     except KeyboardInterrupt:
         pass

@@ -142,7 +142,7 @@ CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_projec
 --temporal_conv_type conv2d \
 --dense_easy_connection \
 --dense_connection_epoch 0 \
---experiment stf_2_conv2d_maxpooling_lif_changed_dense_easy_dense_connection_start_0
+--experiment stf_2_conv2d_maxpooling_lif_changed_dense_easy_dense_connection_start_0_changed
 
 
 
@@ -157,6 +157,6 @@ CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_projec
 --temporal_conv_type conv2d \
 --dense_easy_connection \
 --dense_connection_epoch 0 \
---experiment stf_2_conv2d_maxpooling_lif_changed_dense_easy_dense_connection_start_0
+--experiment stf_2_conv2d_maxpooling_lif_changed_dense_easy_dense_connection_start_0_changed
 
 

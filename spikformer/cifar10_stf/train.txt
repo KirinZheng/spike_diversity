@@ -154,7 +154,7 @@ python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10_st
 --maxpooling_lif_change_order \
 --dense_easy_connection \
 --dense_connection_epoch 0 \
---experiment stf_2_conv2d_maxpooling_lif_changed_dense_easy_dense_connection_start_0
+--experiment stf_2_conv2d_maxpooling_lif_changed_dense_easy_dense_connection_start_0_changed
 
 
 
@@ -170,6 +170,6 @@ python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10_st
 --maxpooling_lif_change_order \
 --dense_easy_connection \
 --dense_connection_epoch 0 \
---experiment stf_2_conv2d_maxpooling_lif_changed_dense_easy_dense_connection_start_0
+--experiment stf_2_conv2d_maxpooling_lif_changed_dense_easy_dense_connection_start_0_changed
 
 
