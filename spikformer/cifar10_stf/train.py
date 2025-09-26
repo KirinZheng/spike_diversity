@@ -39,7 +39,7 @@ from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy, JsdCro
 from timm.optim import create_optimizer_v2, optimizer_kwargs
 from timm.scheduler import create_scheduler
 from timm.utils import ApexScaler, NativeScaler
-import model, model_imp
+import model, model_imp, model_2
 
 import numpy as np          # changed on 2025-04-13
 import adv
@@ -337,6 +337,11 @@ parser.add_argument('--dense_connection_epoch', type=int, default=100, metavar='
 ## changed on 2025-09-23
 parser.add_argument('--dense_easy_connection', action="store_true", default=False, help="just learnable weights")
 
+## changed on 2025-09-26
+parser.add_argument('--dense_finegrained', action="store_true", default=False, help="dense connection finegained")
+parser.add_argument('--use_swanlab', action="store_true", default=False, help="dense connection finegained")
+parser.add_argument('--swanlab_project_name', type=str, default=None, help="swanlab project name")
+parser.add_argument('--swanlab_experiment_name', type=str, default=None, help="swanlab experiment name")
 
 def _parse_args():
     # Do we have a config file to parse?
@@ -404,26 +409,46 @@ def main():
     random_seed(args.seed, args.rank)
 
     if not args.use_imp_lif:
-        model = create_model(
-            'spikformer',
-            pretrained=False,
-            drop_rate=0.,
-            drop_path_rate=0.,
-            drop_block_rate=None,
-            img_size_h=args.img_size, img_size_w=args.img_size,
-            patch_size=args.patch_size, embed_dims=args.dim, num_heads=args.num_heads, mlp_ratios=args.mlp_ratio,
-            in_channels=3, num_classes=args.num_classes, qkv_bias=False,
-            depths=args.layer, sr_ratios=1,
-            T=args.time_step,
-            recurrent_coding=args.recurrent_coding,
-            recurrent_lif=args.recurrent_lif,
-            pe_type=args.pe_type,
-            temporal_conv_type=args.temporal_conv_type,
-            maxpooling_lif_change_order=args.maxpooling_lif_change_order,
-            dense_connection=args.dense_connection,
-            dense_easy_connection=args.dense_easy_connection,
-
-        )
+        if args.dense_finegrained:
+            model = create_model(
+                'spikformer_2',
+                pretrained=False,
+                drop_rate=0.,
+                drop_path_rate=0.,
+                drop_block_rate=None,
+                img_size_h=args.img_size, img_size_w=args.img_size,
+                patch_size=args.patch_size, embed_dims=args.dim, num_heads=args.num_heads, mlp_ratios=args.mlp_ratio,
+                in_channels=3, num_classes=args.num_classes, qkv_bias=False,
+                depths=args.layer, sr_ratios=1,
+                T=args.time_step,
+                recurrent_coding=args.recurrent_coding,
+                recurrent_lif=args.recurrent_lif,
+                pe_type=args.pe_type,
+                temporal_conv_type=args.temporal_conv_type,
+                maxpooling_lif_change_order=args.maxpooling_lif_change_order,
+                dense_connection=args.dense_connection,
+                dense_easy_connection=args.dense_easy_connection,
+                )
+        else:
+            model = create_model(
+                'spikformer',
+                pretrained=False,
+                drop_rate=0.,
+                drop_path_rate=0.,
+                drop_block_rate=None,
+                img_size_h=args.img_size, img_size_w=args.img_size,
+                patch_size=args.patch_size, embed_dims=args.dim, num_heads=args.num_heads, mlp_ratios=args.mlp_ratio,
+                in_channels=3, num_classes=args.num_classes, qkv_bias=False,
+                depths=args.layer, sr_ratios=1,
+                T=args.time_step,
+                recurrent_coding=args.recurrent_coding,
+                recurrent_lif=args.recurrent_lif,
+                pe_type=args.pe_type,
+                temporal_conv_type=args.temporal_conv_type,
+                maxpooling_lif_change_order=args.maxpooling_lif_change_order,
+                dense_connection=args.dense_connection,
+                dense_easy_connection=args.dense_easy_connection,
+                )
     else:
         # changed on 2025-05-01
         model = create_model(
@@ -822,20 +847,22 @@ def main():
             f.write(args_text)
 
     try:
-        # import swanlab
-        #########swan lab###########
-        # 创建一个SwanLab项目
-        # swanlab.init(
-        #     # 设置项目名
-        #     project="spikformer_cifar_100_stf_2_conv2d_dense_easy_dense_start_epoch_0",
-        # )
-        def log_weights_elements(model):
+        if args.use_swanlab:
+            import swanlab
+            ########swan lab###########
+            # 创建一个SwanLab项目
+            swanlab.init(
+                # 设置项目名
+                project=args.swanlab_project_name,
+                experiment_name=args.swanlab_experiment_name,
+            )
+            def log_weights_elements(model):
                 metrics = {}
                 for i, mod in enumerate(model.weights):            # 假设是 nn.ModuleList / list
                     w = mod.weight.detach().cpu().view(-1)         # 展平为一维
                     for j, v in enumerate(w):
                         metrics[f"weights.{i}.{j}"] = float(v.item())
-                # swanlab.log(metrics)
+                swanlab.log(metrics)
 
         for epoch in range(start_epoch, num_epochs):
             if args.distributed and hasattr(loader_train.sampler, 'set_epoch'):
@@ -846,7 +873,8 @@ def main():
                 lr_scheduler=lr_scheduler, saver=saver, output_dir=output_dir,
                 amp_autocast=amp_autocast, loss_scaler=loss_scaler, model_ema=model_ema, mixup_fn=mixup_fn)
 
-            # log_weights_elements(model)
+            if args.use_swanlab:
+                log_weights_elements(model)
 
             if args.distributed and args.dist_bn in ('broadcast', 'reduce'):
                 if args.local_rank == 0:

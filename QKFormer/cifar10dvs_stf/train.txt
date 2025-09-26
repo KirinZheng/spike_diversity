@@ -1,0 +1,10 @@
+# 2 again
+python /storage/zhengzeqi/top_down/QKFormer_original/cifar10-dvs/train.py --output-dir /storage/zhengzeqi/top_down/QKFormer_original/cifar10-dvs/2_again
+
+# cifar10-dvs, T=10, baseline
+python /zhengzeqi/code/zhengzeqi/QKFormer/cifar10dvs/train.py \
+--data-path /zhengzeqi/dataset/cifar10dvs \
+--output-dir /zhengzeqi/code/zhengzeqi/QKFormer/cifar10dvs/weights/T_32 \
+--dts-cache /zhengzeqi/dataset/cifar10dvs/dts_cache \
+--T 32 \
+--device cuda:6

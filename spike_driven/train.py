@@ -1002,6 +1002,13 @@ parser.add_argument(
 parser.add_argument('--dense_easy_connection', action="store_true", 
                     default=False, help="just learnable weights")
 
+## changed on 2025-09-26
+parser.add_argument('--dense_finegrained', action="store_true", default=False, help="dense connection finegained")
+parser.add_argument('--use_swanlab', action="store_true", default=False, help="dense connection finegained")
+parser.add_argument('--swanlab_project_name', type=str, default=None, help="swanlab project name")
+parser.add_argument('--swanlab_experiment_name', type=str, default=None, help="swanlab experiment name")
+
+
 
 
 _logger = logging.getLogger("train")
@@ -1095,38 +1102,72 @@ def main():
         args.dvs_mode = True
 
     if not args.use_imp_lif:                  # changed on 2025-05-01
-        model = create_model(
-            args.model,
-            T=args.time_steps,
-            pretrained=args.pretrained,
-            drop_rate=args.drop,
-            drop_path_rate=args.drop_path,
-            drop_block_rate=args.drop_block,
-            num_heads=args.num_heads,
-            num_classes=args.num_classes,
-            pooling_stat=args.pooling_stat,
-            img_size_h=args.img_size,
-            img_size_w=args.img_size,
-            patch_size=args.patch_size,
-            embed_dims=args.dim,
-            mlp_ratios=args.mlp_ratio,
-            in_channels=args.in_channels,
-            qkv_bias=False,
-            depths=args.layer,
-            sr_ratios=1,
-            spike_mode=args.spike_mode,
-            dvs_mode=args.dvs_mode,
-            TET=args.TET,
-            recurrent_coding=args.recurrent_coding, # changed on 2025-04-13
-            recurrent_lif=args.recurrent_lif,  # changed on 2025-04-13
-            pe_type=args.pe_type,              # changed on 2025-04-17
-            temporal_conv_type=args.temporal_conv_type,
-            maxpooling_lif_change_order=args.maxpooling_lif_change_order,
-            dense_connection=args.dense_connection,
-            dense_easy_connection=args.dense_easy_connection
-            # diversity_loss=args.use_dr_entropy_loss, # changed on 2025-04-24
-            # lif_recurrent_state=args.lif_recurrent_state, # changed on 2025-04-27
-        )
+        if args.dense_finegrained:
+            model = create_model(
+                "sdt_2",
+                T=args.time_steps,
+                pretrained=args.pretrained,
+                drop_rate=args.drop,
+                drop_path_rate=args.drop_path,
+                drop_block_rate=args.drop_block,
+                num_heads=args.num_heads,
+                num_classes=args.num_classes,
+                pooling_stat=args.pooling_stat,
+                img_size_h=args.img_size,
+                img_size_w=args.img_size,
+                patch_size=args.patch_size,
+                embed_dims=args.dim,
+                mlp_ratios=args.mlp_ratio,
+                in_channels=args.in_channels,
+                qkv_bias=False,
+                depths=args.layer,
+                sr_ratios=1,
+                spike_mode=args.spike_mode,
+                dvs_mode=args.dvs_mode,
+                TET=args.TET,
+                recurrent_coding=args.recurrent_coding, # changed on 2025-04-13
+                recurrent_lif=args.recurrent_lif,  # changed on 2025-04-13
+                pe_type=args.pe_type,              # changed on 2025-04-17
+                temporal_conv_type=args.temporal_conv_type,
+                maxpooling_lif_change_order=args.maxpooling_lif_change_order,
+                dense_connection=args.dense_connection,
+                dense_easy_connection=args.dense_easy_connection
+                # diversity_loss=args.use_dr_entropy_loss, # changed on 2025-04-24
+                # lif_recurrent_state=args.lif_recurrent_state, # changed on 2025-04-27
+                )
+        else:
+            model = create_model(
+                args.model,
+                T=args.time_steps,
+                pretrained=args.pretrained,
+                drop_rate=args.drop,
+                drop_path_rate=args.drop_path,
+                drop_block_rate=args.drop_block,
+                num_heads=args.num_heads,
+                num_classes=args.num_classes,
+                pooling_stat=args.pooling_stat,
+                img_size_h=args.img_size,
+                img_size_w=args.img_size,
+                patch_size=args.patch_size,
+                embed_dims=args.dim,
+                mlp_ratios=args.mlp_ratio,
+                in_channels=args.in_channels,
+                qkv_bias=False,
+                depths=args.layer,
+                sr_ratios=1,
+                spike_mode=args.spike_mode,
+                dvs_mode=args.dvs_mode,
+                TET=args.TET,
+                recurrent_coding=args.recurrent_coding, # changed on 2025-04-13
+                recurrent_lif=args.recurrent_lif,  # changed on 2025-04-13
+                pe_type=args.pe_type,              # changed on 2025-04-17
+                temporal_conv_type=args.temporal_conv_type,
+                maxpooling_lif_change_order=args.maxpooling_lif_change_order,
+                dense_connection=args.dense_connection,
+                dense_easy_connection=args.dense_easy_connection
+                # diversity_loss=args.use_dr_entropy_loss, # changed on 2025-04-24
+                # lif_recurrent_state=args.lif_recurrent_state, # changed on 2025-04-27
+                )
     else:
         model = create_model(
             args.model,
@@ -1715,21 +1756,23 @@ def main():
         exit(0)
 
     try:
-        # import swanlab
-        #########swan lab###########
-        # 创建一个SwanLab项目
-        # swanlab.init(
-        #     # 设置项目名
-        #     project="spike_driven_cifar_100_stf_2_conv2d_dense_easy_dense_start_epoch_0",
-        # )
-
-        def log_weights_elements(model):
+        if args.use_swanlab:
+            import swanlab
+            ########swan lab###########
+            # 创建一个SwanLab项目
+            swanlab.init(
+                # 设置项目名
+                project=args.swanlab_project_name,
+                experiment_name=args.swanlab_experiment_name,
+            )
+            def log_weights_elements(model):
                 metrics = {}
                 for i, mod in enumerate(model.weights):            # 假设是 nn.ModuleList / list
                     w = mod.weight.detach().cpu().view(-1)         # 展平为一维
                     for j, v in enumerate(w):
                         metrics[f"weights.{i}.{j}"] = float(v.item())
-                # swanlab.log(metrics)
+                swanlab.log(metrics)
+
 
         for epoch in range(start_epoch, num_epochs):
             if args.distributed and hasattr(loader_train.sampler, "set_epoch"):
@@ -1755,7 +1798,8 @@ def main():
                 dvs_trival_aug=train_dvs_trival_aug,
             )
 
-            # log_weights_elements(model)
+            if args.use_swanlab:
+                log_weights_elements(model)
 
             if args.distributed and args.dist_bn in ("broadcast", "reduce"):
                 if args.local_rank == 0:

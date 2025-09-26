@@ -295,7 +295,7 @@ class MS_SSA_Conv(nn.Module):
         self.layer = layer
         # self.lif_recurrent_state = lif_recurrent_state   # changed on 2025-04-27
 
-    def forward(self, x, hook=None):
+    def forward(self, x, hook=None, x_v=None):
         if isinstance(x, torch.Tensor):
             T, B, C, H, W = x.shape
             identity = x
@@ -374,8 +374,11 @@ class MS_SSA_Conv(nn.Module):
                 .permute(0, 1, 3, 2, 4)
                 .contiguous()
             )
-
-            v_conv_out = self.v_conv(x_for_qkv)
+            if x_v is not None:
+                x_v = x_v.flatten(0, 1) # TB C H W
+                v_conv_out = self.v_conv(x_v)
+            else:
+                v_conv_out = self.v_conv(x_for_qkv)
             v_conv_out = self.v_bn(v_conv_out).reshape(T, B, C, H, W).contiguous()
             # changed on 2025-04-27
             # if self.lif_recurrent_state is not None and self.lif_recurrent_state[3] == "1":
@@ -570,7 +573,7 @@ class MS_Block_Conv(nn.Module):
             # lif_recurrent_state=lif_recurrent_state[5:7],
         )
 
-    def forward(self, x, hook=None):
-        x_attn, attn, hook = self.attn(x, hook=hook)
+    def forward(self, x, hook=None, x_v=None):
+        x_attn, attn, hook = self.attn(x, hook=hook, x_v=x_v)
         x, hook = self.mlp(x_attn, hook=hook)
         return x, attn, hook
