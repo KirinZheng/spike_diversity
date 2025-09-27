@@ -568,7 +568,7 @@ class Spikformer(nn.Module):
                  depths=[6, 8, 6], sr_ratios=[8, 4, 2], T = 4, 
                  recurrent_coding=False, recurrent_lif=None, # changed on 2025-04-13
                  pe_type=None, temporal_conv_type=None, maxpooling_lif_change_order=False,
-                 dense_connection=False, dense_easy_connection=False,
+                 dense_connection=False, dense_easy_connection=False, dense_dynamic_fixed=False,
                  ):
         super().__init__()
         self.T = T  # time step
@@ -588,6 +588,7 @@ class Spikformer(nn.Module):
         self.maxpooling_lif_change_order = maxpooling_lif_change_order
         self.dense_connection = dense_connection
         self.dense_easy_connection = dense_easy_connection
+        self.dense_dynamic_fixed = dense_dynamic_fixed
 
         if not maxpooling_lif_change_order:
             patch_embed = SPS(img_size_h=img_size_h,
@@ -633,6 +634,10 @@ class Spikformer(nn.Module):
                     nn.Linear((i + 2 + self.dilation_factor - 1) // self.dilation_factor, 1, bias=False) 
                     for i in range(self.n_repeat)
                 ])
+                 
+            if self.dense_dynamic_fixed:
+                for m in self.weights:
+                    m.weight.requires_grad = False
 
         setattr(self, f"patch_embed", patch_embed)
         setattr(self, f"block", block)
@@ -647,7 +652,7 @@ class Spikformer(nn.Module):
         if self.dense_easy_connection:
             for module in self.weights:
                 module.weight.data.zero_()
-                module.weight.data[:,-1] = 1.
+                module.weight.data[:,:] = 1.        # dense easy connection factor all 1.0
 
     @torch.jit.ignore
     def _get_pos_embed(self, pos_embed, patch_embed, H, W):
@@ -746,6 +751,7 @@ def spikformer_2(pretrained=False, **kwargs):
     model.default_cfg = _cfg()
 
     print("dense finegrained")
+    print(f"dense_dynamic_fixed: {model.dense_dynamic_fixed}")
     print(f"recurrent_coding: {model.recurrent_coding}")
     print(f"recurrent_lif: {model.recurrent_lif}")
     print(f"pe_type: {model.pe_type}")

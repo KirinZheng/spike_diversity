@@ -1007,6 +1007,7 @@ parser.add_argument('--dense_finegrained', action="store_true", default=False, h
 parser.add_argument('--use_swanlab', action="store_true", default=False, help="dense connection finegained")
 parser.add_argument('--swanlab_project_name', type=str, default=None, help="swanlab project name")
 parser.add_argument('--swanlab_experiment_name', type=str, default=None, help="swanlab experiment name")
+parser.add_argument('--dense_dynamic_fixed', action="store_true", default=False, help="dense dynamic factor fixed")
 
 
 
@@ -1131,7 +1132,8 @@ def main():
                 temporal_conv_type=args.temporal_conv_type,
                 maxpooling_lif_change_order=args.maxpooling_lif_change_order,
                 dense_connection=args.dense_connection,
-                dense_easy_connection=args.dense_easy_connection
+                dense_easy_connection=args.dense_easy_connection,
+                dense_dynamic_fixed=args.dense_dynamic_fixed
                 # diversity_loss=args.use_dr_entropy_loss, # changed on 2025-04-24
                 # lif_recurrent_state=args.lif_recurrent_state, # changed on 2025-04-27
                 )

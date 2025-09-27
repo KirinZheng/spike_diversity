@@ -481,7 +481,7 @@ class spiking_transformer(nn.Module):
                  depths=[6, 8, 6], sr_ratios=[8, 4, 2], T=4, pretrained_cfg=None,
                  recurrent_coding=False, recurrent_lif=None, pe_type=None,
                  temporal_conv_type=None, dense_connection=False,
-                 dense_easy_connection=False,
+                 dense_easy_connection=False, dense_dynamic_fixed=False,
                  ):
         super().__init__()
         self.num_classes = num_classes
@@ -501,6 +501,7 @@ class spiking_transformer(nn.Module):
         self.temporal_conv_type = temporal_conv_type
         self.dense_connection = dense_connection        # changed on 2025-09-22
         self.dense_easy_connection = dense_easy_connection
+        self.dense_dynamic_fixed = dense_dynamic_fixed
 
         patch_embed1 = PatchEmbedInit(img_size_h=img_size_h,
                                        img_size_w=img_size_w,
@@ -559,6 +560,10 @@ class spiking_transformer(nn.Module):
                     nn.Linear((i + 2 + self.dilation_factor - 1) // self.dilation_factor, 1, bias=False) 
                     for i in range(self.n_repeat)
                 ])
+            
+            if self.dense_dynamic_fixed:
+                for m in self.weights:
+                    m.weight.requires_grad = False
 
         setattr(self, f"patch_embed1", patch_embed1)
         setattr(self, f"patch_embed2", patch_embed2)
@@ -578,7 +583,7 @@ class spiking_transformer(nn.Module):
         if self.dense_easy_connection:
             for module in self.weights:
                 module.weight.data.zero_()
-                module.weight.data[:,-1] = 1.
+                module.weight.data[:,:] = 1.            # dense easy connection factor all 1.0
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -681,6 +686,7 @@ def QKFormer(pretrained=False, **kwargs):
     )
     model.default_cfg = _cfg()
     print(f"dense fine-grained")
+    print(f"dense_dynamic_fixed: {model.dense_dynamic_fixed}")
     print(f"recurrent_coding: {model.recurrent_coding}")
     print(f"recurrent_lif: {model.recurrent_lif}")
     print(f"pe_type: {model.pe_type}")

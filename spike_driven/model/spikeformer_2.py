@@ -114,6 +114,7 @@ class SpikeDrivenTransformer(nn.Module):
         maxpooling_lif_change_order=False,
         dense_connection=False,
         dense_easy_connection=False,
+        dense_dynamic_fixed=False,
     ):
         super().__init__()
         self.num_classes = num_classes
@@ -138,6 +139,7 @@ class SpikeDrivenTransformer(nn.Module):
         self.maxpooling_lif_change_order = maxpooling_lif_change_order
         self.dense_easy_connection=dense_easy_connection
         self.dense_connection = dense_connection
+        self.dense_dynamic_fixed=dense_dynamic_fixed
 
         # self.diversity_loss = diversity_loss        # changed on 2025-04-23
         # self.lif_recurrent_state = lif_recurrent_state  # changed on 2025-04-27
@@ -230,6 +232,11 @@ class SpikeDrivenTransformer(nn.Module):
                     nn.Linear((i + 2 + self.dilation_factor - 1) // self.dilation_factor, 1, bias=False) 
                     for i in range(self.n_repeat)
                 ])
+            
+            if self.dense_dynamic_fixed:
+                for m in self.weights:
+                    m.weight.requires_grad = False
+
 
         # if self.lif_recurrent_state is not None:
         #     for i in range(depths):
@@ -266,7 +273,7 @@ class SpikeDrivenTransformer(nn.Module):
         if self.dense_easy_connection:
             for module in self.weights:
                 module.weight.data.zero_()
-                module.weight.data[:,-1] = 1.
+                module.weight.data[:, :] = 1.       # all dynamic  factor to be 1.0
 
     def _init_weights(self, m):
         if isinstance(m, nn.Conv2d):
@@ -388,6 +395,7 @@ def sdt_2(**kwargs):
     )
     model.default_cfg = _cfg()
     print("dense finegrained")
+    print(f"dense_dynamic_fixed: {model.dense_dynamic_fixed}")
     print(f"using recurrent coding: {model.recurrent_coding}")
     print(f"pe_type: {model.pe_type}")
     print(f"temporal_conv_type: {model.temporal_conv_type}")

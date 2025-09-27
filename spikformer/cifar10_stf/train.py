@@ -342,6 +342,7 @@ parser.add_argument('--dense_finegrained', action="store_true", default=False, h
 parser.add_argument('--use_swanlab', action="store_true", default=False, help="dense connection finegained")
 parser.add_argument('--swanlab_project_name', type=str, default=None, help="swanlab project name")
 parser.add_argument('--swanlab_experiment_name', type=str, default=None, help="swanlab experiment name")
+parser.add_argument('--dense_dynamic_fixed', action="store_true", default=False, help="dense dynamic factor fixed")
 
 def _parse_args():
     # Do we have a config file to parse?
@@ -428,6 +429,7 @@ def main():
                 maxpooling_lif_change_order=args.maxpooling_lif_change_order,
                 dense_connection=args.dense_connection,
                 dense_easy_connection=args.dense_easy_connection,
+                dense_dynamic_fixed=args.dense_dynamic_fixed
                 )
         else:
             model = create_model(

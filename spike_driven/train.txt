@@ -199,3 +199,38 @@ CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_projec
 --experiment stf_2_conv2d_maxpooling_lif_changed_dense_just_Xv_epoch_start_0_changed
 
 
+
+## cifar10, stf_2 + conv2d + no 3d pe + maxpooling_lif_changed + dense_easy_connection + dense finegained just x_v fixed factor all 1.0 + dense_connection_start_0, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/train.py \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/conf/cifar10/2_512_300E_t4_l20.yml \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/outputs/cifar10/T_4 \
+--time-steps 4 \
+--recurrent_coding \
+--pe_type stf_2 \
+--maxpooling_lif_change_order \
+--temporal_conv_type conv2d \
+--dense_easy_connection \
+--dense_finegrained \
+--dense_connection_epoch 0 \
+--dense_dynamic_fixed \
+--experiment stf_2_conv2d_maxpooling_lif_changed_dense_just_Xv_factor_all_1_epoch_start_0_changed
+
+
+
+## cifar100, stf_2 + conv2d + no 3d pe + maxpooling_lif_changed + dense_easy_connection + dense finegained just x_v fixed factor all 1.0 + dense_connection_start_0, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/train.py \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/conf/cifar100/2_512_300E_t4_l20.yml \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/outputs/cifar100/T_4 \
+--time-steps 4 \
+--recurrent_coding \
+--pe_type stf_2 \
+--maxpooling_lif_change_order \
+--temporal_conv_type conv2d \
+--dense_easy_connection \
+--dense_finegrained \
+--dense_connection_epoch 0 \
+--dense_dynamic_fixed \
+--experiment stf_2_conv2d_maxpooling_lif_changed_dense_just_Xv_factor_all_1_epoch_start_0_changed
+
+
+
