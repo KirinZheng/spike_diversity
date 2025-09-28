@@ -17,6 +17,25 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 torchrun --nproc_per_node=8 --master_port 2
     --finetune /zhengzeqi/code/zhuzizheng/122Qkformer/official_weight/T4_224offical.pth
 
 
+## QKFormer 10-768-T4-224, stf_2 + conv2d + no_3d_pe, finetune, 5e-05, h20_4
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 torchrun --nproc_per_node=8 --master_port 29501 /zhengzeqi/code/zhengzeqi/spike_diversity/spike_diversity/QKFormer/imagenet_stf/train.py \
+    --output_dir /zhengzeqi/code/zhengzeqi/spike_diversity/spike_diversity/QKFormer/imagenet_stf/output/10_768_T_4_224_stf_2_conv2d_no_pe_finetune_lr_5e05 \
+    --log_dir /zhengzeqi/code/zhengzeqi/spike_diversity/spike_diversity/QKFormer/imagenet_stf/output/10_768_T_4_224_stf_2_conv2d_no_pe_finetune_lr_5e05 \
+    --data_path /zhengzeqi/dataset/imagenet \
+    --model QKFormer_10_768 \
+    --input_size 224 \
+    --time_step 4 \
+    --batch_size 64 \
+    --accum_iter 1 \
+    --epochs 25 \
+    --lr 5e-05 \
+    --warmup_epochs 0 \
+    --recurrent_coding \
+    --pe_type stf_2 \
+    --temporal_conv_type conv2d \
+    --finetune /zhengzeqi/code/zhengzeqi/official_checkpoint/QKFormer/weights/T4_224offical.pth
+
+
 ## QKFormer 10-768-T4-224, stf_2 + conv2d + no_3d_pe, finetune, lr 2e-05, h20_2
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 torchrun --nproc_per_node=8 --master_port 29501 /zhengzeqi/code/zhengzeqi/spike_diversity/spike_diversity/QKFormer/imagenet_stf/train.py \
     --output_dir /zhengzeqi/code/zhengzeqi/spike_diversity/spike_diversity/QKFormer/imagenet_stf/output/10_768_T_4_224_stf_2_conv2d_no_pe_finetune_lr_2e05 \
