@@ -355,7 +355,10 @@ def main(args):
         misc.load_model(args=args, model_without_ddp=model_without_ddp, optimizer=optimizer, loss_scaler=loss_scaler)
 
     if args.eval:
-        test_stats = evaluate(data_loader_val, model, device)
+        if args.recurrent_coding:
+            test_stats = evaluate(data_loader_val, model, device)
+        else:
+            test_stats = evaluate(data_loader_val, model, device)
         # test_stats = evaluate_return_ETF_LIF_with_firing_rate(data_loader_val, model, device)
         print(f"Accuracy of the network on the {len(dataset_val)} test images: {test_stats['acc1']:.1f}%")
         exit(0)
