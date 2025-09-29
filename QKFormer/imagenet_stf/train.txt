@@ -135,16 +135,17 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 torchrun --nproc_per_node=8 --master_port 2
 
 ## QKFormer 10-768-T4-384, stf_2 + conv2d + no_3d_pe, resume, h20_2
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 torchrun --nproc_per_node=8 --master_port 29501 /zhengzeqi/code/zhengzeqi/spike_diversity/spike_diversity/QKFormer/imagenet_stf/train.py \
-    --output_dir /zhengzeqi/code/zhengzeqi/spike_diversity/spike_diversity/QKFormer/imagenet_stf/output/10_768_T_4_384_stf_2_conv2d_no_pe_resume_lr_1e06 \
-    --log_dir /zhengzeqi/code/zhengzeqi/spike_diversity/spike_diversity/QKFormer/imagenet_stf/output/10_768_T_4_384_stf_2_conv2d_no_pe_resume_lr_1e06 \
+    --output_dir /zhengzeqi/code/zhengzeqi/spike_diversity/spike_diversity/QKFormer/imagenet_stf/output/10_768_T_4_384_stf_2_conv2d_no_pe_resume_lr_1e05_min_9e07 \
+    --log_dir /zhengzeqi/code/zhengzeqi/spike_diversity/spike_diversity/QKFormer/imagenet_stf/output/10_768_T_4_384_stf_2_conv2d_no_pe_resume_lr_1e05_min_9e07 \
     --data_path /zhengzeqi/dataset/imagenet \
     --model QKFormer_10_768 \
     --input_size 384 \
     --time_step 4 \
     --batch_size 22 \
     --accum_iter 3 \
-    --epochs 10 \
-    --lr 1e-06 \
+    --epochs 15 \
+    --lr 1e-05 \
+    --min_lr 9e-07 \
     --warmup_epochs 0 \
     --recurrent_coding \
     --pe_type stf_2 \
