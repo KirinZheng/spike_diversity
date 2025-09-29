@@ -103,3 +103,73 @@ CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_projec
 --dense_connection_epoch 0 \
 --dense_dynamic_fixed \
 --experiment stf_2_conv2d_dense_just_Xv_factor_all_1_epoch_start_0_changed
+
+
+## cifar 100, stf_2 + no 3dpe + conv2d + dense_easy_connection + dense finegained just x_v fixed factor all 1.0 + varience stablize + dense connection epoch 0, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/train.py \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/outputs/T_4 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/cifar100_l20.yml \
+-T 4 \
+--recurrent_coding \
+--pe_type stf_2 \
+--temporal_conv_type conv2d \
+--dense_easy_connection \
+--dense_finegrained \
+--dense_connection_epoch 0 \
+--dense_dynamic_fixed \
+--experiment stf_2_conv2d_dense_just_Xv_factor_all_1_varience_stablized_epoch_start_0_changed
+
+
+
+## cifar 100, stf_2 + no 3dpe + conv2d + dense_easy_connection + dense X learnable factor 0.0 and 1.0 + L1 Norm + variance stablize + dense connection epochs 0, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/train.py \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/outputs/T_4 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/cifar100_l20.yml \
+-T 4 \
+--recurrent_coding \
+--pe_type stf_2 \
+--temporal_conv_type conv2d \
+--dense_easy_connection \
+--dense_finegrained \
+--dense_connection_epoch 0 \
+--use_swanlab \
+--swanlab_project_name QKFormer_Diversity \
+--swanlab_experiment_name cifar100_stf_2_conv2d_dense_X_learnable_factor_0to1_variance_stablized_L1_norm \
+--experiment stf_2_conv2d_dense_X_factor_learnable_0to1_variance_stablized_L1_norm_epoch_start_0_changed
+
+
+
+## cifar 100, stf_2 + no 3dpe + conv2d + dense_easy_connection + dense X learnable factor all 1.0 + L1 Norm + variance stablize + dense connection epochs 0, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/train.py \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/outputs/T_4 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/cifar100_l20.yml \
+-T 4 \
+--recurrent_coding \
+--pe_type stf_2 \
+--temporal_conv_type conv2d \
+--dense_easy_connection \
+--dense_finegrained \
+--dense_connection_epoch 0 \
+--use_swanlab \
+--swanlab_project_name QKFormer_Diversity \
+--swanlab_experiment_name cifar100_stf_2_conv2d_dense_X_learnable_factor_all_1_variance_stablized_L1_norm \
+--experiment stf_2_conv2d_dense_X_factor_learnable_all_1_variance_stablized_L1_norm_epoch_start_0_changed
+
+
+
+
+## cifar 100, stf_2 + no 3dpe + conv2d + dense_easy_connection + dense X learnable factor all 1.0 + variance L2 stablize + dense connection epochs 0, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/train.py \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/outputs/T_4 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar100_stf/cifar100_l20.yml \
+-T 4 \
+--recurrent_coding \
+--pe_type stf_2 \
+--temporal_conv_type conv2d \
+--dense_easy_connection \
+--dense_finegrained \
+--dense_connection_epoch 0 \
+--use_swanlab \
+--swanlab_project_name QKFormer_Diversity \
+--swanlab_experiment_name cifar100_stf_2_conv2d_dense_X_learnable_factor_all_1_variance_stablized_L2_norm \
+--experiment stf_2_conv2d_dense_X_factor_learnable_all_1_variance_stablized_L2_norm_epoch_start_0_changed

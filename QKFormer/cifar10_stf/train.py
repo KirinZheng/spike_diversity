@@ -330,6 +330,7 @@ parser.add_argument('--swanlab_project_name', type=str, default=None, help="swan
 parser.add_argument('--swanlab_experiment_name', type=str, default=None, help="swanlab experiment name")
 parser.add_argument('--dense_dynamic_fixed', action="store_true", default=False, help="dense dynamic factor fixed")
 
+
 def _parse_args():
     # Do we have a config file to parse?
     args_config, remaining = config_parser.parse_known_args()

@@ -8,6 +8,7 @@ from functools import partial
 from timm.models import create_model
 from torch import Tensor
 from einops import rearrange
+import math
 
 __all__ = ['QKFormer']
 
@@ -701,9 +702,20 @@ class spiking_transformer(nn.Module):
                     # print(self.weights[rep_idx+1 - 1].weight.view(-1))
                     # assert False
                     # print(patch_3_x==hiddens[rep_idx % self.dilation_factor][1])
+                    
+                    # changed on 2025-09-28, add L1 Normalization and scale factor
+                    states = hiddens[rep_idx % self.dilation_factor][1]
+                    # L = states.size(0)  # 本轮分支数量
 
-                    x_v = torch.tensordot(self.weights[rep_idx - 1].weight.view(-1), 
-                                        hiddens[rep_idx % self.dilation_factor][1], dims=1)
+                    # 原始权重，形状 (L,)
+                    w_raw = self.weights[rep_idx - 1].weight.view(-1)
+
+                    scale = (w_raw.norm(p=2) + 1e-8)
+
+                    x = torch.einsum('l,l...->...', w_raw, states)   # 加权和
+                    x = x / scale                       # 方差稳定
+                    # x_v = torch.tensordot(self.weights[rep_idx - 1].weight.view(-1), 
+                    #                     hiddens[rep_idx % self.dilation_factor][1], dims=1)
                     
             else:
                 for blk in stage3:
