@@ -191,7 +191,7 @@ class SpikingTransformer(nn.Module):
 
 class PatchEmbedInit(nn.Module):
     def __init__(self, img_size_h=128, img_size_w=128, patch_size=4, in_channels=2, embed_dims=256,
-                 recurrent_coding=False, recurrent_lif=None, pe_type=None, time_step=None):
+                 recurrent_coding=False, recurrent_lif=None, pe_type=None, temporal_conv_type=None):
         super().__init__()
         self.image_size = [img_size_h, img_size_w]
         patch_size = to_2tuple(patch_size)
@@ -224,38 +224,29 @@ class PatchEmbedInit(nn.Module):
         self.proj_res_lif = MultiStepLIFNode(tau=2.0, detach_reset=True, backend='cupy')
 
 
-        # changed on 2025-04-08
+        ## changed on 2025-04-08
         self.recurrent_coding = recurrent_coding
         self.recurrent_lif = recurrent_lif
         self.pe_type = pe_type
-        self.time_step = time_step
-
-        # changed on 2025-04-17
-        if self.pe_type is not None:
-            if self.pe_type == "3d_pe_arch_1" or self.pe_type == "3d_pe_arch_4":
-                pos_embed = get_3d_sincos_pos_embed(embed_dim=self.embed_dims // 8, spatial_size=self.image_size[0],
-                                                    temporal_size=time_step, output_type="pt",
-                                                    )  # T HW D
-                T_pe, HW_pe, D_pe = pos_embed.shape
-                # pos_embed = pos_embed.to(x.dtype)
-                pos_embed = pos_embed.reshape(T_pe, int(math.sqrt(HW_pe)), int(math.sqrt(HW_pe)), D_pe).unsqueeze(dim=1).permute(0, 1, 4, 2, 3).contiguous()  # T 1 C H W
-                self.learnable_pos_embed = nn.Parameter(pos_embed.to(self.device, self.dtype))
-
-            elif self.pe_type == "3d_pe_arch_2" or self.pe_type == "3d_pe_arch_3":
-                pos_embed = get_sinusoid_spatial_temporal_encoding(height=img_size_h, width=img_size_w,
-                                                                   time_step=time_step, d_hid=in_channels)
-                
-                self.learnable_pos_embed = nn.Parameter(pos_embed.to(self.device, self.dtype))  # T 1 C H W
-            
+        self.temporal_conv_type = temporal_conv_type
 
         if recurrent_coding:
-            if self.pe_type == "3d_pe_arch_1" or self.pe_type == "3d_pe_arch_2":
-                self.proj_temporal_conv = nn.Conv2d(embed_dims // 8, in_channels, kernel_size=3, stride=1, padding=1, bias=False)
-                self.proj_temporal_bn = nn.BatchNorm2d(in_channels)
-            elif self.pe_type == "3d_pe_arch_3" or self.pe_type == "3d_pe_arch_4" or self.pe_type == "3d_pe_arch_5":
-                self.proj_temporal_conv = nn.Conv2d(embed_dims // 8, embed_dims // 8, kernel_size=3, stride=1, padding=1, bias=False)
-                self.proj_temporal_bn = nn.BatchNorm2d(embed_dims // 8)
-            
+            if self.pe_type == "stf_1":
+                if self.temporal_conv_type == "conv1d":
+                    self.proj_temporal_conv = nn.Conv1d(embed_dims // 8, in_channels, kernel_size=1, stride=1, bias=False)
+                    self.proj_temporal_bn = nn.BatchNorm1d(in_channels)
+                elif self.temporal_conv_type == "conv2d":
+                    self.proj_temporal_conv = nn.Conv2d(embed_dims // 8, in_channels, kernel_size=3, stride=1, padding=1, bias=False)
+                    self.proj_temporal_bn = nn.BatchNorm2d(in_channels)
+
+            elif self.pe_type == "stf_2":
+                if self.temporal_conv_type == "conv1d":
+                    self.proj_temporal_conv = nn.Conv1d(embed_dims // 8, embed_dims // 8, kernel_size=1, stride=1, bias=False)
+                    self.proj_temporal_bn = nn.BatchNorm1d(embed_dims // 8)
+                elif self.temporal_conv_type == "conv2d":
+                    self.proj_temporal_conv = nn.Conv2d(embed_dims // 8, embed_dims // 8, kernel_size=3, stride=1, padding=1, bias=False)
+                    self.proj_temporal_bn = nn.BatchNorm2d(embed_dims // 8)
+
             if recurrent_lif is not None:
                 if recurrent_lif == 'lif':
                     self.proj_temporal_lif = MultiStepLIFNode(tau=2.0, detach_reset=True, backend='cupy')
@@ -265,23 +256,16 @@ class PatchEmbedInit(nn.Module):
 
 
 
+
     def forward(self, x):
         T, B, C, H, W = x.shape
         # Downsampling + Res
         # x_feat = x.flatten(0, 1)
 
-        if not self.recurrent_coding:
-            x = self.proj_conv(x.flatten(0, 1)) # TB C H W
-            x = self.proj_bn(x).reshape(T, B, -1, H, W)
-            x = self.proj_lif(x).flatten(0, 1)  # TB C H W
-        else:
-            # changed on 2025-04-17
-            if self.pe_type == "3d_pe_arch_2" or self.pe_type == "3d_pe_arch_3":
-                x = x + self.learnable_pos_embed
-
+        if self.recurrent_coding:
             t_x = []
+            if self.pe_type == "stf_1":
 
-            if self.pe_type == "3d_pe_arch_1" or self.pe_type == "3d_pe_arch_2":
                 for i in range(T):
                     if i == 0:
                         x_in = x[i] # B C H W
@@ -290,10 +274,6 @@ class PatchEmbedInit(nn.Module):
                         # x_in = x_out
                     x_out = self.proj_conv(x_in)    # B C H W
                     x_out = self.proj_bn(x_out)     # B C H W
-
-                    # add 3d_pe_arch_1
-                    if self.pe_type == "3d_pe_arch_1":
-                        x_out = x_out + self.learnable_pos_embed[i] # B C H W
                     
                 
                     x_out = self.proj_lif(x_out.unsqueeze(0)).squeeze(0)  # B C H W
@@ -307,18 +287,16 @@ class PatchEmbedInit(nn.Module):
                         x_out = self.proj_temporal_lif(x_out.unsqueeze(0)).squeeze(0) # B C H W
                 
                     t_x.append(tmp)
-            elif self.pe_type == "3d_pe_arch_3" or self.pe_type == "3d_pe_arch_4" or self.pe_type == "3d_pe_arch_5":
+
+            elif self.pe_type == "stf_2":
                 x = self.proj_conv(x.flatten(0, 1)) # TB C H W
                 x = self.proj_bn(x).reshape(T, B, -1, H, W) # T B C H W
-                if self.pe_type == "3d_pe_arch_4":
-                    x = x + self.learnable_pos_embed # T B C H W
 
                 for i in range(T):
                     if i == 0:
                         x_in = x[i] # B C H W
                     else:
                         x_in = x[i] + x_out
-                        # x_in = x_out
                 
                     x_out = self.proj_lif(x_in.unsqueeze(0)).squeeze(0)  # B C H W
                 
@@ -333,7 +311,12 @@ class PatchEmbedInit(nn.Module):
                     t_x.append(tmp)
 
             x = torch.stack(t_x, dim=0).flatten(0, 1) # TB C H W
-
+        
+        elif not self.recurrent_coding:
+            x = self.proj_conv(x.flatten(0, 1)) # TB C H W
+            x = self.proj_bn(x).reshape(T, B, -1, H, W)
+            x = self.proj_lif(x).flatten(0, 1)  # TB C H W
+        
         x = self.proj1_conv(x)
         x = self.proj1_bn(x)
         x = self.maxpool1(x).reshape(T, B, -1, H//2, W//2).contiguous()
@@ -411,7 +394,7 @@ class vit_snn(nn.Module):
                  embed_dims=[64, 128, 256], num_heads=[1, 2, 4], mlp_ratios=[4, 4, 4], qkv_bias=False, qk_scale=None,
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0., norm_layer=nn.LayerNorm,
                  depths=[6, 8, 6], sr_ratios=[8, 4, 2], T=4, pretrained_cfg=None, in_chans = 3, no_weight_decay = None,
-                 recurrent_coding=False, recurrent_lif=None, pe_type=None,
+                 recurrent_coding=False, recurrent_lif=None, pe_type=None, temporal_conv_type=None
                  ):
         super().__init__()
         self.num_classes = num_classes
@@ -420,10 +403,14 @@ class vit_snn(nn.Module):
         num_heads = [16, 16, 16]
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, depths)]  # stochastic depth decay rule
 
+        assert pe_type in ("stf_1", "stf_2"), f"Invalid pe_type: {pe_type}, must be 'stf_1' or 'stf_2'"
+        assert temporal_conv_type in ("conv1d", "conv2d"), f"Invalid temporal_conv_type: {temporal_conv_type}, must be 'conv1d' or 'conv2d'"
+
         # changed on 2025-06-17
         self.recurrent_coding = recurrent_coding
         self.recurrent_lif = recurrent_lif
         self.pe_type = pe_type
+        self.temporal_conv_type = temporal_conv_type
 
         #
         patch_embed1 = PatchEmbedInit(img_size_h=img_size_h,
@@ -431,6 +418,10 @@ class vit_snn(nn.Module):
                                        patch_size=patch_size,
                                        in_channels=in_channels,
                                        embed_dims=embed_dims // 2,
+                                       recurrent_coding=recurrent_coding,
+                                       recurrent_lif=recurrent_lif,
+                                       pe_type=pe_type,
+                                       temporal_conv_type=temporal_conv_type
                                        )
 
         stage1 = nn.ModuleList([TokenSpikingTransformer(
@@ -515,6 +506,7 @@ def QKFormer(pretrained=False, **kwargs):
     print(f"recurrent_coding: {model.recurrent_coding}")
     print(f"recurrent_lif: {model.recurrent_lif}")
     print(f"pe_type: {model.pe_type}")
+    print(f"temporal_conv_type :{model.temporal_conv_type}")
     model.default_cfg = _cfg()
     return model
 

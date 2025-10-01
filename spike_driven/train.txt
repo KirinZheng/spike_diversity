@@ -307,3 +307,40 @@ CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_projec
 --experiment stf_2_conv2d_maxpooling_lif_changed_dense_X_learnable_factor_all_1_varience_L2_norm_stablized_epoch_start_0_changed
 
 
+
+## cifar10, stf_2 + conv2d + no 3d pe + maxpooling_lif_changed + dense_easy_connection + dense just Xv learnable factor all 1.0 + varience stablize L2 norm + dense_connection_start_0, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/train.py \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/conf/cifar10/2_512_300E_t4_l20.yml \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/outputs/cifar10/T_4 \
+--time-steps 4 \
+--recurrent_coding \
+--pe_type stf_2 \
+--maxpooling_lif_change_order \
+--temporal_conv_type conv2d \
+--dense_easy_connection \
+--dense_finegrained \
+--dense_connection_epoch 0 \
+--use_swanlab \
+--swanlab_project_name SDT_v1_Diversity \
+--swanlab_experiment_name cifa10_stf_2_conv2d_dense_just_Xv_learnable_factor_all_1_variance_L2_norm_stablize \
+--experiment stf_2_conv2d_maxpooling_lif_changed_dense_just_Xv_learnable_factor_all_1_varience_L2_norm_stablized_epoch_start_0_changed
+
+
+
+## cifar100, stf_2 + conv2d + no 3d pe + maxpooling_lif_changed + dense_easy_connection + dense just Xv learnable factor all 1.0 + varience stablize L2 norm + dense_connection_start_0, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/train.py \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/conf/cifar100/2_512_300E_t4_l20.yml \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/spike_driven/outputs/cifar100/T_4 \
+--time-steps 4 \
+--recurrent_coding \
+--pe_type stf_2 \
+--maxpooling_lif_change_order \
+--temporal_conv_type conv2d \
+--dense_easy_connection \
+--dense_finegrained \
+--dense_connection_epoch 0 \
+--use_swanlab \
+--swanlab_project_name SDT_v1_Diversity \
+--swanlab_experiment_name cifa100_stf_2_conv2d_dense_just_Xv_learnable_factor_all_1_variance_L2_norm_stablize \
+--experiment stf_2_conv2d_maxpooling_lif_changed_dense_just_Xv_learnable_factor_all_1_varience_L2_norm_stablized_epoch_start_0_changed
+

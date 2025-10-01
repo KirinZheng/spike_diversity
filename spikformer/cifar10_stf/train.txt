@@ -322,3 +322,45 @@ python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10_st
 --swanlab_experiment_name cifar100_stf_2_conv2d_dense_X_learnable_factor_all_1_varience_L2_norm_stablized \
 --experiment stf_2_conv2d_maxpooling_lif_changed_dense_X_learnable_factor_all_1_varience_L2_norm_stablized_epoch_start_0_changed
 
+
+## cifar 10, stf_2 + no 3dpe + conv2d + dense easy connection + dense just Xv learnable factor all 1.0 + varience L2 norm stablize + dense connection start 0, T=4, l20
+python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10_stf/train.py \
+-T 4 \
+--seed 42 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10_stf/cifar10_l20.yml \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10_stf/outputs/cifar10/T_4/ \
+--recurrent_coding \
+--pe_type stf_2 \
+--temporal_conv_type conv2d \
+--maxpooling_lif_change_order \
+--dense_easy_connection \
+--dense_finegrained \
+--dense_connection_epoch 0 \
+--use_swanlab \
+--swanlab_project_name Spikformer_Diversity \
+--swanlab_experiment_name cifar10_stf_2_conv2d_dense_just_Xv_learnable_factor_all_1_varience_L2_norm_stablized \
+--experiment stf_2_conv2d_maxpooling_lif_changed_dense_just_Xv_learnable_factor_all_1_varience_L2_norm_stablized_epoch_start_0_changed
+
+
+
+## cifar 100, stf_2 + no 3dpe + conv2d + dense easy connection + dense just Xv learnable factor all 1.0 + varience L2 norm stablize + dense connection start 0, T=4, l20
+python /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10_stf/train.py \
+-T 4 \
+--seed 42 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10_stf/cifar100_l20.yml \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/spikformer/cifar10_stf/outputs/cifar100/T_4/ \
+--recurrent_coding \
+--pe_type stf_2 \
+--temporal_conv_type conv2d \
+--maxpooling_lif_change_order \
+--dense_easy_connection \
+--dense_finegrained \
+--dense_connection_epoch 0 \
+--use_swanlab \
+--swanlab_project_name Spikformer_Diversity \
+--swanlab_experiment_name cifar100_stf_2_conv2d_dense_just_Xv_learnable_factor_all_1_varience_L2_norm_stablized \
+--experiment stf_2_conv2d_maxpooling_lif_changed_dense_just_Xv_learnable_factor_all_1_varience_L2_norm_stablized_epoch_start_0_changed
+
+
+
+

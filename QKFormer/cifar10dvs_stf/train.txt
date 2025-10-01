@@ -1,10 +1,13 @@
 # 2 again
 python /storage/zhengzeqi/top_down/QKFormer_original/cifar10-dvs/train.py --output-dir /storage/zhengzeqi/top_down/QKFormer_original/cifar10-dvs/2_again
 
-# cifar10-dvs, T=10, baseline
-python /zhengzeqi/code/zhengzeqi/QKFormer/cifar10dvs/train.py \
---data-path /zhengzeqi/dataset/cifar10dvs \
---output-dir /zhengzeqi/code/zhengzeqi/QKFormer/cifar10dvs/weights/T_32 \
---dts-cache /zhengzeqi/dataset/cifar10dvs/dts_cache \
---T 32 \
---device cuda:6
+# cifar10-dvs, T=16, stf2_conv2d
+python /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10dvs_stf/train.py \
+--data-path /tangjunfeng/zhengzeqi/data/cifar10dvs \
+--output-dir /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10dvs_stf/weights/T_16_stf2_conv2d \
+--dts-cache /tangjunfeng/zhengzeqi/data/cifar10dvs/dts_cache \
+--T 16 \
+--device cuda:0 \
+--recurrent_coding \
+--pe_type stf_2 \
+--temporal_conv_type conv2d

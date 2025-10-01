@@ -148,6 +148,7 @@ def parse_args():
     parser.add_argument('--recurrent_coding', action='store_true', default=False)
     parser.add_argument('--recurrent_lif', type=str, default=None, help="lif, plif, or None")
     parser.add_argument('--pe_type', default=None, help="position embedding methods")
+    parser.add_argument('--temporal_conv_type', default=None, help="temporal feedback conv type")
     
     # changed on 2025-06-17
     parser.add_argument('--dts-cache', type=str, default="/zhengzeqi/vit_test/ViT_test_experiment/data/cifar10dvs/dts_cache")
@@ -409,6 +410,7 @@ def main(args):
         recurrent_coding=args.recurrent_coding,
         recurrent_lif=args.recurrent_lif,
         pe_type=args.pe_type,
+        temporal_conv_type=args.temporal_conv_type
     )
     print("Creating model")
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)

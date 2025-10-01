@@ -669,8 +669,8 @@ class spiking_transformer(nn.Module):
                     # w = w_raw / (w_raw.abs().sum() + 1e-8)  # L1 Norm
                     scale = (w_raw.norm(p=2) + 1e-8)
 
-                    x = torch.einsum('l,l...->...', w_raw, states)   # 加权和
-                    x = x / scale                      # 方差稳定
+                    x_v = torch.einsum('l,l...->...', w_raw, states)   # 加权和
+                    x_v = x_v / scale                      # 方差稳定
                     # x_v = torch.tensordot(self.weights[rep_idx - 1].weight.view(-1), 
                     #                     hiddens[rep_idx % self.dilation_factor][1], dims=1)
                     
