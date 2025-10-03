@@ -8,6 +8,7 @@ from functools import partial
 from timm.models import create_model
 from torch import Tensor
 from einops import rearrange
+import math
 
 __all__ = ['QKFormer']
 
@@ -67,8 +68,16 @@ class DynamiceResidualBlock(nn.Module):
         dw = rearrange(x_for_qkvr, 'T B (C L) H W -> C T B L H W', C=self.C)
         return dw   # 4 T B lidx+2 H W
     
-    def layer_mix(self, hids, dw)-> Tensor:
+    def layer_mix(self, hids, dw, L2_norm=False, variance=False)-> Tensor:
         # dw [4 T B lidx+2 H W]  hids [T B C H W]
+        if variance:
+            J = self.lidx + 2
+            scale = math.sqrt(J)
+            dw = dw / scale 
+        if L2_norm:
+            eps = 1e-6
+            dw = dw / (dw.pow(2).sum(dim=3, keepdim=True).sqrt() + eps)  # L2 norm over J
+
         x = tuple([sum(dw[cidx,:,:,j,None,:,:] * hids[j] for j in range(self.lidx+2)) for cidx in range(self.C)])
         return x    # [T B C H W] 共四组
 
@@ -654,7 +663,7 @@ class spiking_transformer(nn.Module):
                     hiddens.append(x)  # T B C H W
                     dw = stage3_da[idx](x)   # 4 T B lidx+2 H W
                     dw = dw + dense_bs[idx][:, None, None, :, None, None]  # 4 T B lidx+2 H W
-                    x = stage3_da[idx].layer_mix(hiddens, dw)
+                    x = stage3_da[idx].layer_mix(hiddens, dw, variance=True)
                     idx += 1
             # changed on 2025-09-22
             if use_dense_connection:
