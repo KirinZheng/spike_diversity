@@ -122,7 +122,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 torchrun --nproc_per_node=8 --master_port 2
     --model QKFormer_10_768 \
     --input_size 384 \
     --time_step 4 \
-    --batch_size 55 \
+    --batch_size 50 \
     --accum_iter 1 \
     --epochs 25 \
     --lr 3e-05 \

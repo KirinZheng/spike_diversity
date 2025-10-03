@@ -123,10 +123,11 @@ class SpikeDrivenTransformer(nn.Module):
         self.TET = TET
         self.dvs = dvs_mode
 
-        assert pe_type in ("stf_1", "stf_2"), f"Invalid pe_type: {pe_type}, must be 'stf_1' or 'stf_2'"
-        assert temporal_conv_type in ("conv1d", "conv2d"), f"Invalid temporal_conv_type: {temporal_conv_type}, must be 'conv1d' or 'conv2d'"
-        assert (not dense_connection and not dense_easy_connection) or (dense_connection ^ dense_easy_connection), \
-                "Invalid config: set at most one of 'dense_connection' and 'dense_easy_connection' to True."
+        if recurrent_coding:
+            assert pe_type in ("stf_1", "stf_2"), f"Invalid pe_type: {pe_type}, must be 'stf_1' or 'stf_2'"
+            assert temporal_conv_type in ("conv1d", "conv2d"), f"Invalid temporal_conv_type: {temporal_conv_type}, must be 'conv1d' or 'conv2d'"
+            assert (not dense_connection and not dense_easy_connection) or (dense_connection ^ dense_easy_connection), \
+                    "Invalid config: set at most one of 'dense_connection' and 'dense_easy_connection' to True."
 
         dpr = [
             x.item() for x in torch.linspace(0, drop_path_rate, depths)

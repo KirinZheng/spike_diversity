@@ -127,7 +127,7 @@ def resume_checkpoint(
 
 # changed on 2025-05-09
 def finetune_checkpoint(
-    model, checkpoint_path, log_info=True
+    model, checkpoint_path, log_info=True, cls_head_load=False
 ):
     resume_epoch = None
     if os.path.isfile(checkpoint_path):
@@ -145,7 +145,10 @@ def finetune_checkpoint(
             for k, v in checkpoint['state_dict'].items():
                 name = k[7:] if k.startswith('module') else k
                 print(name)
-                if name != 'head.weight' and name != 'head.bias':
+                if not cls_head_load:
+                    if name != 'head.weight' and name != 'head.bias':
+                        pretrain_dict[name] = v
+                else:
                     pretrain_dict[name] = v
 
             backbone_dict = {k:v for k,v in model_dict.items() if k not in pretrain_dict}

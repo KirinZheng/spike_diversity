@@ -577,12 +577,23 @@ class MS_SPS_Maxpooling_LIF_changed(nn.Module):
         if not self.recurrent_coding:
             x = self.proj_conv(x.flatten(0, 1))  # have some fire value
             x = self.proj_bn(x).reshape(T, B, -1, H // ratio, W // ratio).contiguous()
+            x = x.flatten(0, 1).contiguous() # TB C H W
+            if self.pooling_stat[0] == "1":
+                x = self.maxpool(x)
+                ratio *= 2
+                x = x.reshape(T, B, -1, H // ratio, W // ratio).contiguous()    # T B C H W
+            elif self.pooling_stat[0] == "0":
+                x = x.reshape(T, B, -1, H // ratio, W // ratio).contiguous()    # T B C H W
             x = self.proj_lif(x) # T B C H W
-
+            
         else:
             t_x = []
 
             if self.pe_type == "stf_1":
+                # # 不会导致for loop导致ratio不断增大
+                # if self.pooling_stat[0] == "1":
+                #     ratio *= 2
+
                 for i in range(T):
                     if i == 0:
                         x_in = x[i] # B C H W
@@ -591,6 +602,11 @@ class MS_SPS_Maxpooling_LIF_changed(nn.Module):
                         # x_in = x_out
                     x_out = self.proj_conv(x_in)    # B C H W
                     x_out = self.proj_bn(x_out)     # B C H W
+
+                    # if self.pooling_stat[0] == "1":
+                    #     x_out = self.maxpool(x_out)
+                    #     x_out = x_out.reshape(B, -1, H // ratio, W // ratio).contiguous()    # B C H W
+
                     x_out = self.proj_lif(x_out.unsqueeze(0)).squeeze(0)  # B C H W
                 
                     tmp = x_out
