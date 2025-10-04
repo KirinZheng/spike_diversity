@@ -32,7 +32,7 @@ from torch.nn.parallel import DistributedDataParallel as NativeDDP
 
 from timm.data import create_dataset, resolve_data_config, Mixup, FastCollateMixup, AugMixDataset, create_loader
 # from loader import create_loader
-from timm.models import create_model, safe_model_name, resume_checkpoint, load_checkpoint, \
+from timm.models import create_model, safe_model_name, load_checkpoint, \
     convert_splitbn_model, model_parameters
 from timm.utils import *
 from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy, JsdCrossEntropy
@@ -330,6 +330,11 @@ parser.add_argument('--swanlab_project_name', type=str, default=None, help="swan
 parser.add_argument('--swanlab_experiment_name', type=str, default=None, help="swanlab experiment name")
 parser.add_argument('--dense_dynamic_fixed', action="store_true", default=False, help="dense dynamic factor fixed")
 
+## changed on 2025-10-3
+parser.add_argument('--TET', action="store_true", default=False)
+parser.add_argument('--TET-means', default=1.0, type=float)
+parser.add_argument("--TET-lamb", default=0.0, type=float)
+
 
 def _parse_args():
     # Do we have a config file to parse?
@@ -346,6 +351,83 @@ def _parse_args():
     # Cache the args as a text string to save them in the output dir later
     args_text = yaml.safe_dump(args.__dict__, default_flow_style=False)
     return args, args_text
+
+# changed on 2025-10-3
+def TET_loss(outputs, labels, criterion, means, lamb):
+    T = outputs.size(0)
+    Loss_es = 0
+    for t in range(T):
+        Loss_es += criterion(outputs[t, ...], labels)
+    Loss_es = Loss_es / T  # L_TET
+    if lamb != 0:
+        MMDLoss = torch.nn.MSELoss()
+        y = torch.zeros_like(outputs).fill_(means)
+        Loss_mmd = MMDLoss(outputs, y)  # L_mse
+    else:
+        Loss_mmd = 0
+    return (1 - lamb) * Loss_es + lamb * Loss_mmd  # L_Total
+
+# changed on 2025-10-3
+def resume_checkpoint(model, checkpoint_path, optimizer=None, loss_scaler=None, log_info=True, cls_head_load=False, epoch_from_0=False):
+    resume_epoch = None
+    if os.path.isfile(checkpoint_path):
+        checkpoint = torch.load(checkpoint_path, map_location='cpu')
+        if isinstance(checkpoint, dict) and 'state_dict' in checkpoint:
+            if log_info:
+                _logger.info('Restoring model state from checkpoint...')
+            pretrain_dict = OrderedDict()
+            model_dict = model.state_dict()
+            if cls_head_load:
+                for k, v in checkpoint['state_dict'].items():
+                    name = k[7:] if k.startswith('module') else k
+                    pretrain_dict[name] = v
+            else:
+                for k, v in checkpoint['state_dict'].items():
+                    name = k[7:] if k.startswith('module') else k
+                    if name != 'head.weight' and name != 'head.bias':
+                        pretrain_dict[name] = v
+
+            backbone_dict = {k:v for k,v in model_dict.items() if k not in pretrain_dict}
+
+            model_dict.update(pretrain_dict)
+            model.load_state_dict(model_dict)
+
+            if optimizer is not None and 'optimizer' in checkpoint:
+                if log_info:
+                    _logger.info('Restoring optimizer state from checkpoint...')
+                optimizer.load_state_dict(checkpoint['optimizer'])
+
+            if loss_scaler is not None and loss_scaler.state_dict_key in checkpoint:
+                if log_info:
+                    _logger.info('Restoring AMP loss scaler state from checkpoint...')
+                loss_scaler.load_state_dict(checkpoint[loss_scaler.state_dict_key])
+
+            if 'epoch' in checkpoint and not epoch_from_0:
+                resume_epoch = checkpoint['epoch']
+                if 'version' in checkpoint and checkpoint['version'] > 1:
+                    resume_epoch += 1  # start at the next epoch, old checkpoints incremented before save
+            else:
+                resume_epoch = 0
+
+            if log_info:
+                _logger.info("Loaded checkpoint '{}' (epoch {})".format(checkpoint_path, checkpoint['epoch']))
+
+                for name,param in model.named_parameters():
+                    if name in pretrain_dict:
+                        _logger.info(f"{name} loaded from pretrained model")
+                        # param.requires_grad = False
+                    if name in backbone_dict:
+                        _logger.info(f"{name} random initialised and also can be trained")
+                        continue
+        else:
+            model.load_state_dict(checkpoint)
+            if log_info:
+                _logger.info("Loaded checkpoint '{}'".format(checkpoint_path))
+        return resume_epoch
+    else:
+        _logger.error("No checkpoint found at '{}'".format(checkpoint_path))
+        raise FileNotFoundError()
+
 
 
 def main():
@@ -437,6 +519,7 @@ def main():
             temporal_conv_type=args.temporal_conv_type,
             dense_connection=args.dense_connection,
             dense_easy_connection=args.dense_easy_connection,
+            TET=args.TET,
         )
 
 
@@ -514,7 +597,8 @@ def main():
             model, args.resume,
             optimizer=None if args.no_resume_opt else optimizer,
             loss_scaler=None if args.no_resume_opt else loss_scaler,
-            log_info=args.local_rank == 0)
+            log_info=args.local_rank == 0,
+            cls_head_load=False, epoch_from_0=True)
 
     # setup exponential moving average of model weights, SWA could be used here too
     model_ema = None
@@ -769,7 +853,11 @@ def train_one_epoch(
                 output = model(input, use_dense_connection=True)
             else:
                 output = model(input)
-            loss = loss_fn(output, target)
+
+            if args.TET:
+                loss = TET_loss(output, target, loss_fn, means=args.TET_means, lamb=args.TET_lamb)
+            else:
+                loss = loss_fn(output, target)
 
         if not args.distributed:
             losses_m.update(loss.item(), input.size(0))
@@ -873,7 +961,10 @@ def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix='',
                     output = model(input)
             if isinstance(output, (tuple, list)):
                 output = output[0]
-
+            # changed on 2025-10-03
+            if args.TET:
+                output = output.mean(0)
+            
             # augmentation reduction
             reduce_factor = args.tta
             if reduce_factor > 1:

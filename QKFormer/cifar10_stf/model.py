@@ -484,7 +484,7 @@ class spiking_transformer(nn.Module):
                  depths=[6, 8, 6], sr_ratios=[8, 4, 2], T=4, pretrained_cfg=None,
                  recurrent_coding=False, recurrent_lif=None, pe_type=None,
                  temporal_conv_type=None, dense_connection=False,
-                 dense_easy_connection=False,
+                 dense_easy_connection=False, TET=False,
                  ):
         super().__init__()
         self.num_classes = num_classes
@@ -503,6 +503,7 @@ class spiking_transformer(nn.Module):
         self.temporal_conv_type = temporal_conv_type
         self.dense_connection = dense_connection        # changed on 2025-09-22
         self.dense_easy_connection = dense_easy_connection
+        self.TET = TET
 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, depths)]  # stochastic depth decay rule
 
@@ -714,7 +715,13 @@ class spiking_transformer(nn.Module):
     def forward(self, x, use_dense_connection=False):
         x = (x.unsqueeze(0)).repeat(self.T, 1, 1, 1, 1)
         x = self.forward_features(x, use_dense_connection=use_dense_connection)
-        x = self.head(x.mean(0))
+        if self.TET:
+            T, B, _ = x.shape
+            x = x.flatten(0, 1).contiguous()
+            x = self.head(x)
+            x = x.reshape(T, B, -1)
+        else:
+            x = self.head(x.mean(0))
 
         return x
 

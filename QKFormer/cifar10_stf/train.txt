@@ -229,3 +229,45 @@ CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_projec
 --dense_connection_epoch 0 \
 --experiment stf_2_conv2d_dense_dynamic_variance_stablized_epoch_start_0
 
+
+
+
+## cifar 10, stf_2 + no 3dpe + conv2d + dense_dynamic_connection + variance stablize + finetune, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_stf/train.py \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_stf/outputs/T_4 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_stf/cifar10_l20.yml \
+-T 4 \
+--recurrent_coding \
+--pe_type stf_2 \
+--temporal_conv_type conv2d \
+--dense_connection \
+--dense_connection_epoch 0 \
+--lr 4e-4 \
+--min-lr 1e-5 \
+--warmup-epochs 0 \
+--epochs 100 \
+--resume /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_stf/outputs/T_4/stf_2_conv2d/model_best.pth.tar \
+--no-resume-opt \
+--experiment stf_2_conv2d_dense_dynamic_variance_stablized_epoch_start_0_finetune_stf_2_conv_2d_lr_4e4_min_lr_1e5
+
+
+## cifar 10, stf_2 + no 3dpe + conv2d + dense_dynamic_connection + variance stablize + finetune + TET loss + mean 1.0, lamb 0.001, T=4, l20
+CUDA_VISIBLE_DEVICES=0 python /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_stf/train.py \
+--output /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_stf/outputs/T_4 \
+--config /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_stf/cifar10_l20.yml \
+-T 4 \
+--recurrent_coding \
+--pe_type stf_2 \
+--temporal_conv_type conv2d \
+--dense_connection \
+--dense_connection_epoch 0 \
+--lr 3e-4 \
+--min-lr 1e-5 \
+--warmup-epochs 0 \
+--epochs 150 \
+--TET \
+--TET-means 1.0 \
+--TET-lamb 0.001 \
+--resume /tangjunfeng/zhengzeqi/code/spike_diversity_project/QKFormer/cifar10_stf/outputs/T_4/stf_2_conv2d/model_best.pth.tar \
+--no-resume-opt \
+--experiment stf_2_conv2d_dense_dynamic_variance_stablized_epoch_start_0_finetune_stf_2_conv_2d_lr_3e4_min_lr_1e5_TET_means_1_lamb_0_001
