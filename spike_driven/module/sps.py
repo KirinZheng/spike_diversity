@@ -585,7 +585,7 @@ class MS_SPS_Maxpooling_LIF_changed(nn.Module):
             elif self.pooling_stat[0] == "0":
                 x = x.reshape(T, B, -1, H // ratio, W // ratio).contiguous()    # T B C H W
             x = self.proj_lif(x) # T B C H W
-            
+
         else:
             t_x = []
 
@@ -627,6 +627,15 @@ class MS_SPS_Maxpooling_LIF_changed(nn.Module):
             elif self.pe_type == "stf_2":
                 x = self.proj_conv(x.flatten(0, 1)) # TB C H W
                 x = self.proj_bn(x).reshape(T, B, -1, H, W) # T B C H W
+
+                # changed on 2025-10-4
+                x = x.flatten(0, 1).contiguous()
+                if self.pooling_stat[0] == "1":
+                    x = self.maxpool(x)
+                    ratio *= 2
+                    x = x.reshape(T, B, -1, H // ratio, W // ratio).contiguous()    # T B C H W
+                elif self.pooling_stat[0] == "0":
+                    x = x.reshape(T, B, -1, H // ratio, W // ratio).contiguous()    # T B C H W
 
                 for i in range(T):
                     if i == 0:

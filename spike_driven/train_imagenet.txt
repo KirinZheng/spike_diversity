@@ -20,7 +20,7 @@ python -m torch.distributed.launch --nproc_per_node=1 /zhengzeqi/top_down/spiked
 --experiment imagenet_T_4_3d_pe_arch_1_6_512_finetune
 
 
-## sdt 8-768 finetune only for stf_2_conv2d_maxpooling_lif_changed
+## sdt 8-768 finetune only for maxpooling_lif_changed
 python -m torch.distributed.launch --nproc_per_node=8 /zhengzeqi/code/zhengzeqi/spike_diversity/spike_diversity/spike_driven/train.py \
 -c /zhengzeqi/code/zhengzeqi/spike_diversity/spike_diversity/spike_driven/conf/imagenet/8_768_300E_t4_h20_2.yml \
 --model sdt \
@@ -37,3 +37,25 @@ python -m torch.distributed.launch --nproc_per_node=8 /zhengzeqi/code/zhengzeqi/
 --epochs 30 \
 --maxpooling_lif_change_order \
 --experiment imagenet_T_4_8_768_finetune_lr_7_5e_4_bt_90_mlr_1_125e_6_sm_002_maxpooling_changed_all
+
+
+## sdt 8-768 finetune only for stf_2_conv2d_maxpooling_lif_changed
+python -m torch.distributed.launch --nproc_per_node=8 /zhengzeqi/code/zhengzeqi/spike_diversity/spike_diversity/spike_driven/train.py \
+-c /zhengzeqi/code/zhengzeqi/spike_diversity/spike_diversity/spike_driven/conf/imagenet/8_768_300E_t4_h20_2.yml \
+--model sdt \
+--output /zhengzeqi/code/zhengzeqi/spike_diversity/spike_diversity/spike_driven/outputs/imagenet1k \
+--time-steps 4 \
+--batch-size 90 \
+--val-batch-size 90 \
+--finetune /zhengzeqi/code/zhengzeqi/spike_diversity/spike_diversity/spike_driven/outputs/imagenet1k/imagenet_T_4_8_768_finetune_lr_7_5e_4_bt_90_mlr_1_125e_6_sm_002_maxpooling_changed_all/checkpoint-27_7635.pth.tar \
+--cooldown-epochs 0 \
+--warmup-epochs 0 \
+--lr 7.5e-4 \
+--smoothing 0.02 \
+--min-lr 1.125e-6 \
+--epochs 30 \
+--recurrent_coding \
+--pe_type stf_2 \
+--temporal_conv_type conv2d \
+--maxpooling_lif_change_order \
+--experiment imagenet_T_4_8_768_finetune_lr_7_5e_4_bt_48_mlr_1_125e_6_sm_002_stf_2_conv2d_maxpooling_changed_all
